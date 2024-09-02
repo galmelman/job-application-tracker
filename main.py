@@ -211,14 +211,17 @@ class ApplicationTracker:
             pass
 
     def sort_treeview(self, col, reverse):
-        l = [(self.tree.set(k, col), k) for k in self.tree.get_children('')]
-        l.sort(reverse=reverse)
+        # Get all item IDs and their values for the specified column
+        items = [(self.tree.set(item_id, col), item_id) for item_id in self.tree.get_children('')]
 
-        # Rearrange items in sorted positions
-        for index, (val, k) in enumerate(l):
-            self.tree.move(k, '', index)
+        # Sort items based on column values
+        items.sort(reverse=reverse)
 
-        # Reverse sort next time
+        # Rearrange items in the Treeview
+        for index, (value, item_id) in enumerate(items):
+            self.tree.move(item_id, '', index)
+
+        # Update column header to toggle sort order on click
         self.tree.heading(col, command=lambda: self.sort_treeview(col, not reverse))
 
 
