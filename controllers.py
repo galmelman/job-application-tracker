@@ -2,12 +2,15 @@ import tkinter as tk
 from tkinter import messagebox
 from models import JobApplication
 
-def add_or_update_application(applications, tree, company_entry, position_entry, date_applied_entry, status_combo, notes_entry, save_applications, update_table, clear_entries):
+
+def add_or_update_application(applications, tree, company_entry, position_entry, date_applied_entry, status_combo,
+                              notes_entry,reminder_date_entry, save_applications, update_table, clear_entries):
     company = company_entry.get().strip()
     position = position_entry.get().strip()
     date_applied = date_applied_entry.get().strip()
     status = status_combo.get()
     notes = notes_entry.get().strip()
+    reminder_date = reminder_date_entry.get().strip()
 
     if not company or not position:
         messagebox.showwarning("Input Error", "Company and Position are required fields.")
@@ -22,17 +25,18 @@ def add_or_update_application(applications, tree, company_entry, position_entry,
         # Update existing application
         item = selected_items[0]
         index = tree.index(item)
-        applications[index] = JobApplication(company, position, date_applied, status, notes)
+        applications[index] = JobApplication(company, position, date_applied, status, notes, reminder_date)
     else:
         # Add new application
-        new_app = JobApplication(company, position, date_applied, status, notes)
+        new_app = JobApplication(company, position, date_applied, status, notes, reminder_date)
         applications.append(new_app)
 
     save_applications()
     update_table()
     clear_entries()
 
-def edit_selected(tree, company_entry, position_entry, date_applied_entry, status_combo, notes_entry):
+
+def edit_selected(tree, company_entry, position_entry, date_applied_entry, status_combo, notes_entry, reminder_date_entry):
     selected_items = tree.selection()
     if selected_items:
         item = selected_items[0]
@@ -46,6 +50,8 @@ def edit_selected(tree, company_entry, position_entry, date_applied_entry, statu
         status_combo.set(values[3])
         notes_entry.delete(0, tk.END)
         notes_entry.insert(0, values[4])
+        reminder_date_entry.delete(0, tk.END)
+        reminder_date_entry.insert(0, values[5])
     else:
         messagebox.showinfo("Selection", "Please select an application to edit.")
 
