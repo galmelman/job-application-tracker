@@ -16,8 +16,8 @@ def show_reminder_popup(application):
 
 def setup_reminder_check(master,applications):
     check_reminders(applications)
-    master.after(60000, lambda: setup_reminder_check(master, applications))  # Check every 24 hours
-#86400000
+    master.after(86400000, lambda: setup_reminder_check(master, applications))  # Check every 24 hours
+
 
 def save_applications(filename, applications):
     with open(filename, 'w', newline='') as file:
