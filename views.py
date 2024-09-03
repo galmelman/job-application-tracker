@@ -1,9 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
-from models import JobApplication
 from utils import save_applications, load_applications
 from controllers import add_or_update_application, edit_selected, delete_selected
+
 
 class ApplicationTracker:
     def __init__(self, master):
@@ -53,13 +52,22 @@ class ApplicationTracker:
         self.status_combo.grid(row=1, column=3, pady=2)
         self.status_combo.set("Applied")
 
+
+        # reminder Date
+        ttk.Label(input_frame, text="Reminder Date (YYYY-MM-DD").grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.reminder_date_entry = ttk.Entry(input_frame, width=90)
+        self.reminder_date_entry.grid(row=3, column=1, columnspan=3, pady=2)
+
+
         # Notes
         ttk.Label(input_frame, text="Notes:").grid(row=2, column=0, sticky=tk.W, pady=2)
         self.notes_entry = ttk.Entry(input_frame, width=90)
         self.notes_entry.grid(row=2, column=1, columnspan=3, sticky=tk.EW, pady=2)
 
+
+
         # Add/Update Button
-        ttk.Button(input_frame, text="Add/Update Application", command=self.add_or_update_application).grid(row=3,
+        ttk.Button(input_frame, text="Add Application", command=self.add_or_update_application).grid(row=4,
                                                                                                             column=1,
                                                                                                             columnspan=2,
                                                                                                             pady=10)
@@ -69,7 +77,7 @@ class ApplicationTracker:
         table_frame.pack(fill=tk.BOTH, expand=True)
 
         # Treeview
-        self.tree = ttk.Treeview(table_frame, columns=("Company", "Position", "Date Applied", "Status", "Notes"),
+        self.tree = ttk.Treeview(table_frame, columns=("Company", "Position", "Date Applied", "Status", "Notes", "Reminder Date (YYYY-MM-DD"),
                                  show="headings")
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -78,8 +86,9 @@ class ApplicationTracker:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.configure(yscrollcommand=scrollbar.set)
 
+
         # Treeview Headings
-        for col in ("Company", "Position", "Date Applied", "Status", "Notes"):
+        for col in ("Company", "Position", "Date Applied", "Status", "Notes", "Reminder Date (YYYY-MM-DD"):
             self.tree.heading(col, text=col, command=lambda _col=col: self.sort_treeview(_col, False))
             self.tree.column(col, width=100)
 
@@ -101,6 +110,7 @@ class ApplicationTracker:
             self.date_applied_entry,
             self.status_combo,
             self.notes_entry,
+            self.reminder_date_entry,
             self.save_applications,
             self.update_table,
             self.clear_entries
@@ -113,7 +123,8 @@ class ApplicationTracker:
             self.position_entry,
             self.date_applied_entry,
             self.status_combo,
-            self.notes_entry
+            self.notes_entry,
+            self.reminder_date_entry
         )
 
     def delete_selected(self):
@@ -129,7 +140,7 @@ class ApplicationTracker:
             self.tree.delete(item)
         for app in self.applications:
             item = self.tree.insert("", "end",
-                                    values=(app.company, app.position, app.date_applied, app.status, app.notes))
+                                    values=(app.company, app.position, app.date_applied, app.status, app.notes,app.reminder_date))
             self.tree.item(item, tags=(app.status,))
 
         # Configure tag colors
@@ -142,6 +153,7 @@ class ApplicationTracker:
         self.date_applied_entry.delete(0, tk.END)
         self.status_combo.set("Applied")
         self.notes_entry.delete(0, tk.END)
+        self.reminder_date_entry.delete(0, tk.END)
 
     def save_applications(self):
         save_applications(self.filename, self.applications)
