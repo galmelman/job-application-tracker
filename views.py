@@ -1,7 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-from utils import save_applications, load_applications
+from utils import save_applications, load_applications,get_application_statistics
 from controllers import add_or_update_application, edit_selected, delete_selected
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 
 class ApplicationTracker:
@@ -174,3 +177,38 @@ class ApplicationTracker:
 
         # Update column header to toggle sort order on click
         self.tree.heading(col, command=lambda: self.sort_treeview(col, not reverse))
+
+
+def create_analytics_frame(master, applications):
+    frame = ttk.Frame(master)
+    frame.pack(fill=tk.BOTH, expand=True)
+
+    # Get statistics from the applications
+    stats = get_application_statistics(applications)
+
+    # Create a Pie Chart for Application Statuses
+    statuses = stats['applications_per_status']
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Pie Chart
+    ax[0].pie(statuses.values(), labels=statuses.keys(), autopct='%1.1f%%', startangle=90)
+    ax[0].axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax[0].set_title('Application Statuses')
+
+    # Bar Chart for Applications per Month
+    applications_per_month = stats['applications_per_month']
+    months = [str(month) for month in applications_per_month.keys()]  # Convert Period objects to strings
+    counts = list(applications_per_month.values())
+
+    ax[1].bar(months, counts)
+    ax[1].set_xticklabels(months, rotation=45)
+    ax[1].set_title('Applications per Month')
+    ax[1].set_xlabel('Month')
+    ax[1].set_ylabel('Number of Applications')
+
+    # Embed the charts in Tkinter
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    return frame
