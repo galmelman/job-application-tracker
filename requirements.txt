@@ -1,5 +1,7 @@
 tkinter==3.9.7
 ttkthemes==3.2.2
+matplotlib==3.3.4  # For creating charts and visualizations
+pandas==1.2.4      # For handling data and generating statistics
 csv==1.0
 datetime==4.8
 re==2.2.1
