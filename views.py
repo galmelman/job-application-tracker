@@ -19,7 +19,9 @@ class ApplicationTracker:
             "Interview Scheduled": "#87CEEB",  # Sky Blue
             "Offer Received": "#90EE90",  # Light Green
             "Rejected": "#FFA07A",  # Light Salmon
-            "Withdrawn": "#D3D3D3"  # Light Gray
+            "Withdrawn": "#D3D3D3",  # Light Gray
+            "Awaiting Response": "#FFFACD"  # Lemon Chiffon
+
         }
 
         self.create_widgets()

@@ -1,5 +1,5 @@
 import tkinter as tk
-from views import ApplicationTracker,create_analytics_frame
+from views import ApplicationTracker, create_analytics_frame
 from utils import setup_reminder_check
 
 if __name__ == "__main__":
