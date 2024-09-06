@@ -64,6 +64,4 @@ The Job Application Tracker is a desktop application built using Tkinter that he
 
 Contributions to improve the Job Application Tracker are welcome. Please feel free to submit a Pull Request.
 
-## License
 
-This project is open source and available under the [MIT License](LICENSE).
