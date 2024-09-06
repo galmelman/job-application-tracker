@@ -21,7 +21,7 @@ class ApplicationTracker:
             "Offer Received": "#90EE90",  # Light Green
             "Rejected": "#FFA07A",  # Light Salmon
             "Withdrawn": "#D3D3D3",  # Light Gray
-            "Awaiting Response": "#FFFACD"  # Lemon Chiffon
+            "Awaiting Response": "#00CED1"  # Dark Turquoise
         }
 
         self.create_widgets()
