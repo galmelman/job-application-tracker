@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Job Application Tracker is a desktop application built using Tkinter that helps users track their job applications. It provides features to add, update, delete, and visualize job application data.
+The Job Application Tracker is a desktop application built using Tkinter that helps users track their job applications. It provides features to add, update, delete, and visualize job application data, with SQLite database integration for efficient data management.
 
 ## Features
 
@@ -12,7 +12,8 @@ The Job Application Tracker is a desktop application built using Tkinter that he
   - The application automatically visualizes the status of your applications with a pie chart.
   - A bar chart displays the number of applications submitted each month.
   - Detailed statistics such as total applications, applications per status, company, position, and month are generated and displayed.
-- **CSV Integration**: Save and load your application data from a CSV file.
+- **SQLite Database**: Efficient and reliable storage of application data using SQLite.
+- **Data Persistence**: Your application data is automatically saved and loaded from the SQLite database.
 
 ## Installation
 
@@ -33,17 +34,36 @@ The Job Application Tracker is a desktop application built using Tkinter that he
 ## Dependencies
 
 - Tkinter: For the graphical user interface.
-- ttkthemes: For additional themes.
+- SQLite3: For database operations.
 - Matplotlib: For generating visualizations.
 - Pandas: For data manipulation and generating statistics.
-- CSV: For saving and loading application data.
 - Datetime: For handling date-related operations.
-- Re: For regular expressions.
 
 ## How to Use
 
-1. **Adding a New Application**: Enter the details of your job application, including the company name, position, date applied, status, and any notes or reminders. Click the "Add Application" button to save the entry.
+1. **Adding a New Application**: Enter the details of your job application, including the company name, position, date applied, status, notes, and reminder date. Click the "Add/Update Application" button to save the entry.
 
-2. **Editing an Application**: Select an application from the list, make your changes, and click "Edit Selected" to update the entry.
+2. **Editing an Application**: Select an application from the list, make your changes in the input fields, and click "Add/Update Application" to update the entry.
 
-3. **Deleting an Application**: Select an application from the
+3. **Deleting an Application**: Select an application from the list and click "Delete Selected" to remove the entry.
+
+4. **Viewing Statistics**: The application automatically generates and displays statistics about your job applications, including pie charts for application statuses and bar charts for applications per month.
+
+5. **Setting Reminders**: Enter a reminder date for an application, and the system will notify you when it's time to follow up.
+
+## Project Structure
+
+- `main.py`: The entry point of the application.
+- `views.py`: Contains the main GUI implementation.
+- `controllers.py`: Handles the logic for adding, updating, and deleting applications.
+- `models.py`: Defines the JobApplication class.
+- `database.py`: Manages SQLite database operations.
+- `utils.py`: Contains utility functions for reminders and statistics.
+
+## Contributing
+
+Contributions to improve the Job Application Tracker are welcome. Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
