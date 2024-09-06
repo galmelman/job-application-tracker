@@ -1,5 +1,6 @@
 class JobApplication:
     def __init__(self, company, position, date_applied, status="Applied", notes="", reminder_date=""):
+        self.id = None
         self.company = company
         self.position = position
         self.date_applied = date_applied
