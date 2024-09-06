@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-from utils import save_applications, load_applications,get_application_statistics
+from database import get_all_applications, create_table
 from controllers import add_or_update_application, edit_selected, delete_selected
+from utils import get_application_statistics
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-
 
 class ApplicationTracker:
     def __init__(self, master):
@@ -13,8 +12,8 @@ class ApplicationTracker:
         self.master.title("Job Application Tracker")
         self.master.geometry("1000x700")
 
-        self.applications = load_applications("job_applications.csv")
-        self.filename = "job_applications.csv"
+        create_table()  # Create the SQLite table if it doesn't exist
+        self.applications = get_all_applications()
         self.status_colors = {
             "Applied": "#FFD700",  # Gold
             "Interview Scheduled": "#87CEEB",  # Sky Blue
@@ -55,22 +54,18 @@ class ApplicationTracker:
         self.status_combo.grid(row=1, column=3, pady=2)
         self.status_combo.set("Applied")
 
-
-        # reminder Date
-        ttk.Label(input_frame, text="Reminder Date (YYYY-MM-DD").grid(row=3, column=0, sticky=tk.W, pady=2)
+        # Reminder Date
+        ttk.Label(input_frame, text="Reminder Date (YYYY-MM-DD):").grid(row=3, column=0, sticky=tk.W, pady=2)
         self.reminder_date_entry = ttk.Entry(input_frame, width=90)
         self.reminder_date_entry.grid(row=3, column=1, columnspan=3, pady=2)
-
 
         # Notes
         ttk.Label(input_frame, text="Notes:").grid(row=2, column=0, sticky=tk.W, pady=2)
         self.notes_entry = ttk.Entry(input_frame, width=90)
         self.notes_entry.grid(row=2, column=1, columnspan=3, sticky=tk.EW, pady=2)
 
-
-
         # Add/Update Button
-        ttk.Button(input_frame, text="Add Application", command=self.add_or_update_application).grid(row=4,
+        ttk.Button(input_frame, text="Add/Update Application", command=self.add_or_update_application).grid(row=4,
                                                                                                             column=1,
                                                                                                             columnspan=2,
                                                                                                             pady=10)
@@ -80,7 +75,7 @@ class ApplicationTracker:
         table_frame.pack(fill=tk.BOTH, expand=True)
 
         # Treeview
-        self.tree = ttk.Treeview(table_frame, columns=("Company", "Position", "Date Applied", "Status", "Notes", "Reminder Date (YYYY-MM-DD"),
+        self.tree = ttk.Treeview(table_frame, columns=("ID", "Company", "Position", "Date Applied", "Status", "Notes", "Reminder Date"),
                                  show="headings")
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -89,9 +84,8 @@ class ApplicationTracker:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.configure(yscrollcommand=scrollbar.set)
 
-
         # Treeview Headings
-        for col in ("Company", "Position", "Date Applied", "Status", "Notes", "Reminder Date (YYYY-MM-DD"):
+        for col in ("ID", "Company", "Position", "Date Applied", "Status", "Notes", "Reminder Date"):
             self.tree.heading(col, text=col, command=lambda _col=col: self.sort_treeview(_col, False))
             self.tree.column(col, width=100)
 
@@ -106,7 +100,6 @@ class ApplicationTracker:
 
     def add_or_update_application(self):
         add_or_update_application(
-            self.applications,
             self.tree,
             self.company_entry,
             self.position_entry,
@@ -114,7 +107,6 @@ class ApplicationTracker:
             self.status_combo,
             self.notes_entry,
             self.reminder_date_entry,
-            self.save_applications,
             self.update_table,
             self.clear_entries
         )
@@ -131,19 +123,15 @@ class ApplicationTracker:
         )
 
     def delete_selected(self):
-        delete_selected(
-            self.tree,
-            self.applications,
-            self.save_applications,
-            self.update_table
-        )
+        delete_selected(self.tree, self.update_table)
 
     def update_table(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
+        self.applications = get_all_applications()
         for app in self.applications:
             item = self.tree.insert("", "end",
-                                    values=(app.company, app.position, app.date_applied, app.status, app.notes,app.reminder_date))
+                                    values=(app.id, app.company, app.position, app.date_applied, app.status, app.notes, app.reminder_date))
             self.tree.item(item, tags=(app.status,))
 
         # Configure tag colors
@@ -157,12 +145,6 @@ class ApplicationTracker:
         self.status_combo.set("Applied")
         self.notes_entry.delete(0, tk.END)
         self.reminder_date_entry.delete(0, tk.END)
-
-    def save_applications(self):
-        save_applications(self.filename, self.applications)
-
-    def load_applications(self):
-        self.applications = load_applications(self.filename)
 
     def sort_treeview(self, col, reverse):
         # Get all item IDs and their values for the specified column
@@ -184,7 +166,7 @@ def create_analytics_frame(master, applications):
     frame.pack(fill=tk.BOTH, expand=True)
 
     # Get statistics from the applications
-    stats = get_application_statistics(applications)
+    stats = get_application_statistics()
 
     # Create a Pie Chart for Application Statuses
     statuses = stats['applications_per_status']
