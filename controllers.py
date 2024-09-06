@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from models import JobApplication
-from database import insert_application, update_application, delete_application, get_all_applications
+from database import insert_application, update_application, delete_application
 from datetime import datetime
 
 
@@ -33,7 +33,7 @@ def add_or_update_application(tree, company_entry, position_entry, date_applied_
         item = selected_items[0]
         app_id = tree.item(item, "values")[0]
         new_app.id = app_id  # Set the ID for the existing application
-        update_application(new_app)
+        update_application(app_id, new_app)
     else:
         # Add new application
         insert_application(new_app)

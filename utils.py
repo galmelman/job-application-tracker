@@ -4,6 +4,7 @@ from datetime import datetime
 from database import get_all_applications
 from tkinter import messagebox
 import pandas as pd
+import numpy as np
 
 
 def check_reminders(applications):
@@ -37,7 +38,29 @@ def get_application_statistics():
         'applications_per_status': df['status'].value_counts().to_dict(),
         'applications_per_company': df['company'].value_counts().to_dict(),
         'applications_per_position': df['position'].value_counts().to_dict(),
-        'applications_per_month': df['month_year'].value_counts().to_dict(),
+        'applications_per_month': df['month_year'].value_counts().sort_index().to_dict(),
     }
+
+    # Calculate average applications per month
+    months_count = df['month_year'].nunique()
+    statistics['avg_applications_per_month'] = len(applications) / months_count if months_count > 0 else 0
+
+    # Most applied company
+    statistics['most_applied_company'] = df['company'].mode().iloc[0] if not df['company'].empty else "N/A"
+
+    # Most common position
+    statistics['most_common_position'] = df['position'].mode().iloc[0] if not df['position'].empty else "N/A"
+
+    # Success rate (considering 'Offer Received' as success)
+    success_count = df[df['status'] == 'Offer Received'].shape[0]
+    statistics['success_rate'] = (success_count / len(applications)) * 100 if len(applications) > 0 else 0
+
+    # Average response time (considering 'Interview Scheduled' or 'Offer Received' as response)
+    df['response_time'] = np.where(
+        df['status'].isin(['Interview Scheduled', 'Offer Received']),
+        (datetime.now() - df['date_applied']).dt.days,
+        np.nan
+    )
+    statistics['avg_response_time'] = df['response_time'].mean()
 
     return statistics

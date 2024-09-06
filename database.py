@@ -25,6 +25,7 @@ def insert_application(app):
     conn.commit()
     conn.close()
 
+
 def update_application(app_id, app):
     conn = sqlite3.connect('job_applications.db')
     c = conn.cursor()
