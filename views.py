@@ -305,8 +305,5 @@ class AnalyticsView:
         text_widget.insert(tk.END, header + stats_text)
         text_widget.config(state=tk.DISABLED)  # Make the text widget read-only
 
-        # Optional: Add a scrollbar if content exceeds widget height
-        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        text_widget.config(yscrollcommand=scrollbar.set)
+
 
