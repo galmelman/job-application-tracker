@@ -23,25 +23,24 @@ The Job Application Tracker is a desktop application built using Python and Tkin
   - Additional statistics including total applications, average applications per month, success rate, and average response time.
 - **Sorting Functionality**: 
   - Sort applications by any column for easy data organization.
+- **Map View**: 
+  - Open a map view showing job application locations with interactive markers.
+  - Visualize application locations on a map, centered on Israel, using Folium and Webview.
 
 ## Installation
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/job-application-tracker.git
-   ```
+git clone https://github.com/yourusername/job-application-tracker.git
+
 2. Navigate to the project directory:
-   ```
-   cd job-application-tracker
-   ```
+cd job-application-tracker
+
 3. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+pip install -r requirements.txt
+
 4. Run the application:
-   ```
-   python main.py
-   ```
+python main.py
+
 
 ## Dependencies
 
@@ -50,32 +49,38 @@ The Job Application Tracker is a desktop application built using Python and Tkin
 - SQLite3: For database operations
 - Matplotlib: For generating visualizations
 - Pandas: For data manipulation and statistics generation
+- Folium: For map creation and visualization
+- Webview: For displaying HTML content
 
 ## How to Use
 
 1. **Adding a New Application**: 
-   - Fill in the application details in the input fields.
-   - Click "Add/Update Application" to save the entry.
+- Fill in the application details in the input fields.
+- Click "Add/Update Application" to save the entry.
 
 2. **Editing an Application**: 
-   - Select an application from the list.
-   - Modify the details in the input fields.
-   - Click "Add/Update Application" to save changes.
+- Select an application from the list.
+- Modify the details in the input fields.
+- Click "Add/Update Application" to save changes.
 
 3. **Deleting an Application**: 
-   - Select an application from the list.
-   - Click "Delete Selected" to remove the entry.
+- Select an application from the list.
+- Click "Delete Selected" to remove the entry.
 
 4. **Setting Reminders**: 
-   - Enter a reminder date when adding or updating an application.
-   - The system will notify you when it's time to follow up.
+- Enter a reminder date when adding or updating an application.
+- The system will notify you when it's time to follow up.
 
 5. **Viewing Analytics**: 
-   - Click "View Analytics" to open the analytics window.
-   - Explore various charts and statistics about your job applications.
+- Click "View Analytics" to open the analytics window.
+- Explore various charts and statistics about your job applications.
 
 6. **Sorting Applications**: 
-   - Click on any column header in the main view to sort applications by that criteria.
+- Click on any column header in the main view to sort applications by that criteria.
+
+7. **Viewing the Map**: 
+- Click "Open Map" to view the map with markers for job application locations.
+- The map opens in a new window and shows application locations centered on Israel.
 
 ## Project Structure
 
@@ -95,6 +100,3 @@ Contributions to improve the Job Application Tracker are welcome. Please follow 
 3. Make your changes and commit them (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin feature-branch`)
 5. Create a new Pull Request
-
-
-
