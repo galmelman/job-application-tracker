@@ -1,13 +1,17 @@
-import tkinter as tk
-
-import fontTools
-from ttkbootstrap import Style
 import ttkbootstrap as ttk
 from database import get_all_applications, create_table
 from controllers import add_or_update_application, edit_selected, delete_selected
 from utils import get_application_statistics
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import webview
+import os
+import folium
+from folium.plugins import MarkerCluster
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+import tkinter as tk
+from ttkbootstrap import Style
 
 
 class ApplicationTracker:
@@ -60,10 +64,15 @@ class ApplicationTracker:
         self.status_combo.grid(row=1, column=3, pady=5)
         self.status_combo.set("Applied")
 
-        # Reminder Date
-        ttk.Label(input_frame, text="Reminder Date (YYYY-MM-DD):").grid(row=3, column=0, sticky=tk.W, pady=5)
-        self.reminder_date_entry = ttk.Entry(input_frame, width=90)
-        self.reminder_date_entry.grid(row=3, column=1, columnspan=3, pady=5)
+        # Add location entry
+        ttk.Label(input_frame, text="Location:").grid(row=3, column=0, sticky=tk.W, pady=5)
+        self.location_entry = ttk.Entry(input_frame, width=30)
+        self.location_entry.grid(row=3, column=1, pady=5)
+
+        # Move Reminder Date to row 3, column 2 and 3
+        ttk.Label(input_frame, text="Reminder Date (YYYY-MM-DD):").grid(row=3, column=2, sticky=tk.W, pady=5)
+        self.reminder_date_entry = ttk.Entry(input_frame, width=30)
+        self.reminder_date_entry.grid(row=3, column=3, pady=5)
 
         # Notes
         ttk.Label(input_frame, text="Notes:").grid(row=2, column=0, sticky=tk.W, pady=5)
@@ -98,6 +107,7 @@ class ApplicationTracker:
         ttk.Button(button_frame, text="Edit Selected", command=self.edit_selected, style='info.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Delete Selected", command=self.delete_selected, style='danger.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="View Analytics", command=self.open_analytics_window, style='success.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Open Map",command=self.open_map_view, style='info.TButton').pack(side=tk.LEFT, padx=5)
 
         self.update_table()
 
@@ -110,6 +120,7 @@ class ApplicationTracker:
             self.status_combo,
             self.notes_entry,
             self.reminder_date_entry,
+            self.location_entry,
             self.update_table,
             self.clear_entries
         )
@@ -122,7 +133,8 @@ class ApplicationTracker:
             self.date_applied_entry,
             self.status_combo,
             self.notes_entry,
-            self.reminder_date_entry
+            self.reminder_date_entry,
+            self.location_entry
         )
 
     def delete_selected(self):
@@ -135,7 +147,7 @@ class ApplicationTracker:
         for app in self.applications:
             item = self.tree.insert("", "end",
                                     values=(app.id, app.company, app.position, app.date_applied, app.status, app.notes,
-                                            app.reminder_date))
+                                            app.reminder_date, app.location))
             self.tree.item(item, tags=(app.status,))
 
         # Configure tag colors
@@ -154,6 +166,7 @@ class ApplicationTracker:
         self.status_combo.set("Applied")
         self.notes_entry.delete(0, tk.END)
         self.reminder_date_entry.delete(0, tk.END)
+        self.location_entry.delete(0, tk.END)
 
     def sort_treeview(self, col, reverse):
         items = [(self.tree.set(item_id, col), item_id) for item_id in self.tree.get_children('')]
@@ -167,6 +180,40 @@ class ApplicationTracker:
         analytics_window.title("Application Analytics")
         analytics_window.geometry("1000x800")
         AnalyticsView(analytics_window, self.applications)
+
+    def open_map_view(self):
+        # Create a window to display the map
+        map_window = tk.Toplevel(self.master)
+        map_window.title("Map View")
+        map_window.geometry("800x600")
+
+        m = folium.Map(location=[31.0461, 34.8516], zoom_start=8)  # Latitude and Longitude for Israel , feel free to change it
+
+        # Add markers for each application location
+        marker_cluster = MarkerCluster().add_to(m)
+        geolocator = Nominatim(user_agent="job_application_tracker")
+
+        for app in self.applications:
+            if app.location:
+                try:
+                    location = geolocator.geocode(app.location)
+                    if location:
+                        folium.Marker(
+                            [location.latitude, location.longitude],
+                            popup=f"{app.company} - {app.position}",
+                            tooltip=app.location
+                        ).add_to(marker_cluster)
+                except (GeocoderTimedOut, GeocoderUnavailable):
+                    print(f"Geocoding failed for location: {app.location}")
+
+        map_file = "job_locations_map.html"
+        m.save(map_file)
+
+        # Use PyWebview to display the HTML map
+        webview.create_window("Map", 'file://' + os.path.realpath(map_file))
+        webview.start()
+
+        os.remove(map_file)  # Clean up the HTML file after loading
 
 
 class AnalyticsView:
@@ -217,6 +264,10 @@ class AnalyticsView:
 
         # Text widget for additional statistics
         self.create_text_stats(notebook, stats)
+
+
+
+
 
     def create_status_chart(self, parent, stats):
         statuses = stats['applications_per_status']
