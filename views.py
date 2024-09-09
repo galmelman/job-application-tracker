@@ -65,7 +65,7 @@ class ApplicationTracker:
         self.status_combo.set("Applied")
 
         # Add location entry
-        ttk.Label(input_frame, text="Location:").grid(row=3, column=0, sticky=tk.W, pady=5)
+        ttk.Label(input_frame, text="Location (Full Address):").grid(row=3, column=0, sticky=tk.W, pady=5)
         self.location_entry = ttk.Entry(input_frame, width=30)
         self.location_entry.grid(row=3, column=1, pady=5)
 
@@ -194,7 +194,7 @@ class ApplicationTracker:
         geolocator = Nominatim(user_agent="job_application_tracker")
 
         for app in self.applications:
-            if app.location:
+            if app.location and app.status != "Rejected":
                 try:
                     location = geolocator.geocode(app.location)
                     if location:
