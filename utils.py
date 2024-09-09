@@ -6,21 +6,38 @@ from database import get_all_applications
 from tkinter import messagebox
 import pandas as pd
 import numpy as np
+import json, os
 
 
-def check_reminders(applications):
+def load_settings(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    return {}
+
+
+def check_email_feature_enabled(settings):
+    return settings.get('email_reminders', False)
+
+
+def check_reminders(applications, settings):
     today = datetime.now().date()
+    email_feature_enabled = settings.get('email_reminders', False)
+
     for app in applications:
         if app.reminder_date and datetime.strptime(app.reminder_date, "%Y-%m-%d").date() < today:
-            send_email_reminder(app)
+            if email_feature_enabled:
+                send_email_reminder(app, settings)
             show_reminder_popup(app)
 
 
-def send_email_reminder(application):
+def send_email_reminder(application, settings):
     # Email credentials
     sender_email = "jobapplicationtracker1@outlook.com"
     password = "Qc125467"
-    receiver_email = "example@gmail.com"  # Replace with your email address
+
+    # Retrieve email settings
+    receiver_email = settings.get('receiver_email', 'example@gmail.com')
 
     # Create the email content
     subject = f"Follow-up Reminder: {application.position} at {application.company}"
@@ -52,14 +69,13 @@ def send_email_reminder(application):
         print(f"Failed to send email reminder: {e}")
 
 
-
 def show_reminder_popup(application):
     messagebox.showinfo("Reminders", f"Follow up your application to {application.company} for the {application.position} position.")
 
 
-def setup_reminder_check(master,applications):
-    check_reminders(applications)
-    master.after(86400000, lambda: setup_reminder_check(master, applications))  # Check every 24 hours
+def setup_reminder_check(master, applications, settings):
+    check_reminders(applications,settings)
+    master.after(86400000, lambda: setup_reminder_check(master, applications,settings))  # Check every 24 hours
 
 
 def get_application_statistics():

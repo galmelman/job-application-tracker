@@ -7,6 +7,9 @@ if __name__ == "__main__":
     app = ApplicationTracker(root)
 
     # Start the reminder check process
-    setup_reminder_check(root, app.applications)
+    setup_reminder_check(root, app.applications, app.settings)
 
     root.mainloop()
+
+
+# check the email feild sending
