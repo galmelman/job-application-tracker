@@ -11,7 +11,8 @@ def create_table():
                   date_applied TEXT,
                   status TEXT,
                   notes TEXT,
-                  reminder_date TEXT)''')
+                  reminder_date TEXT,
+                  location TEXT)''')
     conn.commit()
     conn.close()
 
@@ -19,9 +20,9 @@ def insert_application(app):
     conn = sqlite3.connect('job_applications.db')
     c = conn.cursor()
     c.execute('''INSERT INTO applications
-                 (company, position, date_applied, status, notes, reminder_date)
-                 VALUES (?, ?, ?, ?, ?, ?)''',
-              (app.company, app.position, app.date_applied, app.status, app.notes, app.reminder_date))
+                 (company, position, date_applied, status, notes, reminder_date, location)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
+              (app.company, app.position, app.date_applied, app.status, app.notes, app.reminder_date, app.location))
     conn.commit()
     conn.close()
 
@@ -30,9 +31,9 @@ def update_application(app_id, app):
     conn = sqlite3.connect('job_applications.db')
     c = conn.cursor()
     c.execute('''UPDATE applications
-                 SET company=?, position=?, date_applied=?, status=?, notes=?, reminder_date=?
+                 SET company=?, position=?, date_applied=?, status=?, notes=?, reminder_date=?, location=?
                  WHERE id=?''',
-              (app.company, app.position, app.date_applied, app.status, app.notes, app.reminder_date, app_id))
+              (app.company, app.position, app.date_applied, app.status, app.notes, app.reminder_date, app.location, app_id))
     conn.commit()
     conn.close()
 
@@ -50,7 +51,7 @@ def get_all_applications():
     rows = c.fetchall()
     applications = []
     for row in rows:
-        app = JobApplication(row[1], row[2], row[3], row[4], row[5], row[6])
+        app = JobApplication(row[1], row[2], row[3], row[4], row[5], row[6], row[7])
         app.id = row[0]
         applications.append(app)
     conn.close()

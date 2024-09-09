@@ -1,5 +1,5 @@
 class JobApplication:
-    def __init__(self, company, position, date_applied, status="Applied", notes="", reminder_date=""):
+    def __init__(self, company, position, date_applied, status="Applied", notes="", reminder_date="", location=""):
         self.id = None
         self.company = company
         self.position = position
@@ -7,6 +7,7 @@ class JobApplication:
         self.status = status
         self.notes = notes
         self.reminder_date = reminder_date
+        self.location = location
 
     def __str__(self):
-        return f"{self.company}, {self.position}, {self.date_applied}, {self.status}, {self.notes}, {self.reminder_date}"
+        return f"{self.company}, {self.position}, {self.date_applied}, {self.status}, {self.notes}, {self.reminder_date}, {self.location}"

@@ -1,18 +1,25 @@
 import tkinter as tk
 from tkinter import messagebox
+from geopy import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 from models import JobApplication
 from database import insert_application, update_application, delete_application
 from datetime import datetime
 
 
 def add_or_update_application(tree, company_entry, position_entry, date_applied_entry, status_combo,
-                              notes_entry, reminder_date_entry, update_table, clear_entries):
+                              notes_entry, reminder_date_entry, location_entry, update_table, clear_entries):
     company = company_entry.get().strip()
     position = position_entry.get().strip()
     date_applied = date_applied_entry.get().strip()
     status = status_combo.get()
     notes = notes_entry.get().strip()
     reminder_date = reminder_date_entry.get().strip()
+    location = location_entry.get().strip()
+
+    if location and not validate_location(location):
+        tk.messagebox.showerror("Invalid Location", "The provided location is not valid.")
+        return
 
     if not company or not position:
         messagebox.showwarning("Input Error", "Company and Position are required fields.")
@@ -25,7 +32,7 @@ def add_or_update_application(tree, company_entry, position_entry, date_applied_
         messagebox.showwarning("Input Error", "Invalid date format. Please use YYYY-MM-DD.")
         return
 
-    new_app = JobApplication(company, position, date_applied, status, notes, reminder_date)
+    new_app = JobApplication(company, position, date_applied, status, notes, reminder_date, location)
 
     selected_items = tree.selection()
     if selected_items:
@@ -43,7 +50,7 @@ def add_or_update_application(tree, company_entry, position_entry, date_applied_
 
 
 def edit_selected(tree, company_entry, position_entry, date_applied_entry, status_combo, notes_entry,
-                  reminder_date_entry):
+                  reminder_date_entry, location_entry):
     selected_items = tree.selection()
     if selected_items:
         item = selected_items[0]
@@ -59,6 +66,9 @@ def edit_selected(tree, company_entry, position_entry, date_applied_entry, statu
         notes_entry.insert(0, values[5])
         reminder_date_entry.delete(0, tk.END)
         reminder_date_entry.insert(0, values[6])
+        location_entry.delete(0, tk.END)
+        location_entry.insert(0, values[7])
+
     else:
         messagebox.showinfo("Selection", "Please select an application to edit.")
 
@@ -87,4 +97,16 @@ def validate_date(date_string):
         datetime.strptime(date_string, '%Y-%m-%d')
         return True
     except ValueError:
+        return False
+
+
+def validate_location(location):
+    geolocator = Nominatim(user_agent="job_application_tracker")
+    try:
+        location_info = geolocator.geocode(location)
+        if location_info:
+            return True
+        else:
+            return False
+    except (GeocoderTimedOut, GeocoderUnavailable):
         return False
