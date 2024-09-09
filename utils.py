@@ -1,5 +1,6 @@
-import csv
-from models import JobApplication
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from database import get_all_applications
 from tkinter import messagebox
@@ -11,7 +12,45 @@ def check_reminders(applications):
     today = datetime.now().date()
     for app in applications:
         if app.reminder_date and datetime.strptime(app.reminder_date, "%Y-%m-%d").date() < today:
+            send_email_reminder(app)
             show_reminder_popup(app)
+
+
+def send_email_reminder(application):
+    # Email credentials
+    sender_email = "jobapplicationtracker1@outlook.com"
+    password = "Qc125467"
+    receiver_email = "example@gmail.com"  # Replace with your email address
+
+    # Create the email content
+    subject = f"Follow-up Reminder: {application.position} at {application.company}"
+    body = (
+        f"Hello,\n\nThis is a reminder to follow up on your job application for the "
+        f"position of {application.position} at {application.company}. "
+        f"You applied on {application.date_applied}.\n\nBest regards,\nJob Application Tracker"
+    )
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        # Set up the SMTP server
+        server = smtplib.SMTP('smtp-mail.outlook.com', 587)
+        server.starttls()
+        server.login(sender_email, password)
+
+        # Send the email
+        text = msg.as_string()
+        server.sendmail(sender_email, receiver_email, text)
+        server.quit()
+        print(f"Email reminder sent for application to {application.position}!")
+    except Exception as e:
+        print(f"Failed to send email reminder: {e}")
+
 
 
 def show_reminder_popup(application):
