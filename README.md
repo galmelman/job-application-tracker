@@ -117,5 +117,5 @@ Contributions to improve the Job Application Tracker are welcome. Please follow 
 
 ![Application Screenshot](./assets/table.png)
 ![Application Screenshot](./assets/map.png)
-![Application Screenshot](assets/email.jpg)
+![Application Screenshot](assets/email.png)
 ![Application Screenshot](./assets/analyze.png)
