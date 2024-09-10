@@ -12,4 +12,3 @@ if __name__ == "__main__":
     root.mainloop()
 
 
-# check the email feild sending

@@ -37,7 +37,7 @@ def send_email_reminder(application, settings):
     password = "Qc125467"
 
     # Retrieve email settings
-    receiver_email = settings.get('receiver_email', 'example@gmail.com')
+    receiver_email = settings.get('email', 'example@gmail.com')
 
     # Create the email content
     subject = f"Follow-up Reminder: {application.position} at {application.company}"
