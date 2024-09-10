@@ -1,10 +1,12 @@
 import ttkbootstrap as ttk
 from database import get_all_applications, create_table
 from controllers import add_or_update_application, edit_selected, delete_selected
-from utils import get_application_statistics
+from utils import get_application_statistics, load_settings
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import webview
+from tkinter import messagebox
+import json
 import os
 import folium
 from folium.plugins import MarkerCluster
@@ -19,8 +21,8 @@ class ApplicationTracker:
         self.master = master
         self.style = Style(theme="solar")  # lumen  journal
         self.master.title("Job Application Tracker")
+        self.settings = load_settings('settings.json')
         self.master.geometry("1200x800")
-
         create_table()  # Create the SQLite table if it doesn't exist
         self.applications = get_all_applications()
         self.status_colors = {
@@ -107,7 +109,8 @@ class ApplicationTracker:
         ttk.Button(button_frame, text="Edit Selected", command=self.edit_selected, style='info.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Delete Selected", command=self.delete_selected, style='danger.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="View Analytics", command=self.open_analytics_window, style='success.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Open Map",command=self.open_map_view, style='info.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Open Map",command=MapView(self.master, self.applications).open_map_view, style='info.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Settings", command=self.open_settings, style='info.TButton').pack(side=tk.LEFT, padx=5)
 
         self.update_table()
 
@@ -180,6 +183,15 @@ class ApplicationTracker:
         analytics_window.title("Application Analytics")
         analytics_window.geometry("1000x800")
         AnalyticsView(analytics_window, self.applications)
+    def open_settings(self):
+        SettingsWindow(self.master)
+
+
+class MapView:
+    def __init__(self, master, applications):
+        self.master = master
+        self.applications = applications
+        self.geolocator = Nominatim(user_agent="job_application_tracker")
 
     def open_map_view(self):
         # Create a window to display the map
@@ -187,16 +199,16 @@ class ApplicationTracker:
         map_window.title("Map View")
         map_window.geometry("800x600")
 
-        m = folium.Map(location=[31.0461, 34.8516], zoom_start=8)  # Latitude and Longitude for Israel , feel free to change it
+        m = folium.Map(location=[31.0461, 34.8516],
+                       zoom_start=8)  # Latitude and Longitude for Israel, feel free to change it
 
         # Add markers for each application location
         marker_cluster = MarkerCluster().add_to(m)
-        geolocator = Nominatim(user_agent="job_application_tracker")
 
         for app in self.applications:
             if app.location and app.status != "Rejected":
                 try:
-                    location = geolocator.geocode(app.location)
+                    location = self.geolocator.geocode(app.location)
                     if location:
                         folium.Marker(
                             [location.latitude, location.longitude],
@@ -214,6 +226,50 @@ class ApplicationTracker:
         webview.start()
 
         os.remove(map_file)  # Clean up the HTML file after loading
+
+
+class SettingsWindow:
+    def __init__(self, master):
+        self.master = master
+        self.settings_file = 'settings.json'
+        self.settings = load_settings(self.settings_file)
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        settings_window = tk.Toplevel(self.master)
+        settings_window.title("Settings")
+        settings_window.geometry("400x300")
+
+        frame = ttk.Frame(settings_window, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # Email
+        ttk.Label(frame, text="Email Address:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.email_entry = ttk.Entry(frame, width=30)
+        self.email_entry.grid(row=0, column=1, pady=5)
+        self.email_entry.insert(0, self.settings.get('email', ''))
+
+        # Enable Email Reminders
+        self.email_reminders_var = tk.BooleanVar()
+        self.email_reminders_var.set(self.settings.get('email_reminders', False))
+        ttk.Checkbutton(frame, text="Enable Email Reminders", variable=self.email_reminders_var).grid(row=1, column=0, columnspan=2, pady=10)
+
+        # Save Button
+        ttk.Button(frame, text="Save", command=self.save_settings, style='success.TButton').grid(row=2, column=0, columnspan=2, pady=20)
+
+    def save_settings(self):
+        email = self.email_entry.get()
+        email_reminders = self.email_reminders_var.get()
+
+        self.settings['email'] = email
+        self.settings['email_reminders'] = email_reminders
+
+        with open(self.settings_file, 'w') as file:
+            json.dump(self.settings, file, indent=4)
+
+        self.master.update()  # Update the main window to reflect changes
+        messagebox.showinfo("Settings", "Settings saved successfully.")
 
 
 class AnalyticsView:

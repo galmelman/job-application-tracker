@@ -32,6 +32,11 @@ def add_or_update_application(tree, company_entry, position_entry, date_applied_
         messagebox.showwarning("Input Error", "Invalid date format. Please use YYYY-MM-DD.")
         return
 
+    if reminder_date:
+        if not validate_date(reminder_date):
+            messagebox.showwarning("Input Error", "Invalid reminder date.")
+            return
+
     new_app = JobApplication(company, position, date_applied, status, notes, reminder_date, location)
 
     selected_items = tree.selection()

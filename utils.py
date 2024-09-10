@@ -1,26 +1,81 @@
-import csv
-from models import JobApplication
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from database import get_all_applications
 from tkinter import messagebox
 import pandas as pd
 import numpy as np
+import json, os
 
 
-def check_reminders(applications):
+def load_settings(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    return {}
+
+
+def check_email_feature_enabled(settings):
+    return settings.get('email_reminders', False)
+
+
+def check_reminders(applications, settings):
     today = datetime.now().date()
+    email_feature_enabled = settings.get('email_reminders', False)
+
     for app in applications:
         if app.reminder_date and datetime.strptime(app.reminder_date, "%Y-%m-%d").date() < today:
+            if email_feature_enabled:
+                send_email_reminder(app, settings)
             show_reminder_popup(app)
+
+
+def send_email_reminder(application, settings):
+    # Email credentials
+    sender_email = "jobapplicationtracker1@outlook.com"
+    password = "Qc125467"
+
+    # Retrieve email settings
+    receiver_email = settings.get('email', 'example@gmail.com')
+
+    # Create the email content
+    subject = f"Follow-up Reminder: {application.position} at {application.company}"
+    body = (
+        f"Hello,\n\nThis is a reminder to follow up on your job application for the "
+        f"position of {application.position} at {application.company}. "
+        f"You applied on {application.date_applied}.\n\nBest regards,\nJob Application Tracker"
+    )
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        # Set up the SMTP server
+        server = smtplib.SMTP('smtp-mail.outlook.com', 587)
+        server.starttls()
+        server.login(sender_email, password)
+
+        # Send the email
+        text = msg.as_string()
+        server.sendmail(sender_email, receiver_email, text)
+        server.quit()
+        print(f"Email reminder sent for application to {application.position}!")
+    except Exception as e:
+        print(f"Failed to send email reminder: {e}")
 
 
 def show_reminder_popup(application):
     messagebox.showinfo("Reminders", f"Follow up your application to {application.company} for the {application.position} position.")
 
 
-def setup_reminder_check(master,applications):
-    check_reminders(applications)
-    master.after(86400000, lambda: setup_reminder_check(master, applications))  # Check every 24 hours
+def setup_reminder_check(master, applications, settings):
+    check_reminders(applications,settings)
+    master.after(86400000, lambda: setup_reminder_check(master, applications,settings))  # Check every 24 hours
 
 
 def get_application_statistics():
