@@ -114,5 +114,5 @@ Contributions to improve the Job Application Tracker are welcome. Please follow 
 5. Create a new Pull Request
 
 ## examples
-![Alt Text](C:\Users\galme\תואר\projects\Job-Apliction-tracker\output\screenshot\map)
+![Application Screenshot](C:/Users/galme/תואר/projects/Job-Apliction-tracker/output/screenshot)
 
