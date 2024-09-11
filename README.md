@@ -1,3 +1,4 @@
+
 # Job Application Tracker
 
 ## Overview
@@ -21,18 +22,21 @@ The Job Application Tracker is a desktop application built using Python and Tkin
 - **Email Notifications**:
   - Configure email settings to receive reminders about application follow-ups.
   - Enable or disable email reminders through the settings menu.
+  - Utilizes the `smtplib` library for sending emails.
 - **Advanced Analytics and Visualization**: 
   - Real-time statistics and charts for insightful analysis of your job search progress.
-  - Pie chart for application status distribution.
-  - Bar charts for applications per month, company, and position.
+  - Uses `pandas` for data manipulation and analysis.
+  - Pie chart for application status distribution using `matplotlib`.
+  - Bar charts for applications per month, company, and position .
   - Additional statistics including total applications, average applications per month, success rate, and average response time.
 - **Sorting Functionality**: 
   - Sort applications by any column for easy data organization.
 - **Map View**: 
   - Open a map view showing job application locations with interactive markers.
-  - Visualize application locations on a map, centered on Israel, using Folium and Webview.
+  - Visualize application locations on a map, centered on Israel, using `folium` and `webview`.
 - **Settings**:
   - Customize application settings, including email preferences.
+
 
 ## Installation
 
