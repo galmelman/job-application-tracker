@@ -25,7 +25,7 @@ def check_reminders(applications, settings):
     email_feature_enabled = settings.get('email_reminders', False)
 
     for app in applications:
-        if app.reminder_date and datetime.strptime(app.reminder_date, "%Y-%m-%d").date() < today:
+        if app.reminder_date and not app.status == 'Rejected' and datetime.strptime(app.reminder_date, "%Y-%m-%d").date() < today:
             if email_feature_enabled:
                 send_email_reminder(app, settings)
             show_reminder_popup(app)
