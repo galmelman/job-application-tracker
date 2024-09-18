@@ -34,7 +34,7 @@ def check_reminders(applications, settings):
 def send_email_reminder(application, settings):
     # Email credentials
     sender_email = "jobapplicationtracker1@outlook.com"
-    password = "Qc125467"
+    password = "nokhzmittoyrycyg"
 
     # Retrieve email settings
     receiver_email = settings.get('email', 'example@gmail.com')
