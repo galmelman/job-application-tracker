@@ -74,7 +74,7 @@ def show_reminder_popup(application):
 
 
 def setup_reminder_check(master, applications, settings):
-    check_reminders(applications,settings)
+    check_reminders(applications, settings)
     master.after(86400000, lambda: setup_reminder_check(master, applications,settings))  # Check every 24 hours
 
 
