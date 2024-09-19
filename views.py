@@ -36,6 +36,7 @@ class ApplicationTracker:
             "Awaiting Response": "info"
         }
         self.create_widgets()
+        self.update_status_colors()
 
     def create_widgets(self):
         main_frame = ttk.Frame(self.master, padding="20")
@@ -49,9 +50,13 @@ class ApplicationTracker:
         table_frame = ttk.Frame(left_frame)
         table_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Configure style for Treeview
+        self.style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
+        self.style.configure("Treeview.Heading", background="gray20", foreground="white")
+
         # Treeview
         self.tree = ttk.Treeview(table_frame, columns=("ID", "Company", "Position", "Date Applied", "Status"),
-                                 show="headings", style='info.Treeview')
+                                 show="headings", style='Treeview')
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # Scrollbar
@@ -79,6 +84,8 @@ class ApplicationTracker:
                    style='info.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Settings", command=self.open_settings, style='secondary.TButton').pack(
             side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Help", command=self.open_help_window, style='info.TButton').pack(
+            side=tk.LEFT, padx=5)
 
         # Create right frame for analytics
         right_frame = ttk.Frame(main_frame)
@@ -88,6 +95,9 @@ class ApplicationTracker:
         self.analytics_view = AnalyticsView(right_frame, self.applications)
 
         self.update_table()
+
+    def open_help_window(self):
+        HelpWindow(self.master)
 
     def open_add_application_window(self):
         AddApplicationWindow(self.master, self.update_table, self.settings)
@@ -108,16 +118,13 @@ class ApplicationTracker:
             item = self.tree.insert("", "end", values=(app.id, app.company, app.position, app.date_applied, app.status))
             self.tree.item(item, tags=(app.status,))
 
+        self.update_status_colors()
+
+    def update_status_colors(self):
         for status, color in self.status_colors.items():
-            color = self.style.lookup(status, 'background')
-            self.tree.tag_configure(status, background=color, foreground="black")
-
-        style = ttk.Style()
-        style.configure('info.Treeview', background='black', foreground='white', fieldbackground='black')
-        style.configure('info.Treeview.Heading', background='gray20', foreground='white')
-
-        # Update analytics view
-        self.analytics_view.update_analytics(self.applications)
+            bg_color = self.style.lookup(color + '.TButton', 'background')
+            fg_color = self.style.lookup(color + '.TButton', 'foreground')
+            self.tree.tag_configure(status, background=bg_color, foreground=fg_color)
 
     def sort_treeview(self, col, reverse):
         items = [(self.tree.set(item_id, col), item_id) for item_id in self.tree.get_children('')]
@@ -131,6 +138,8 @@ class ApplicationTracker:
         new_theme = self.settings.get("theme", "solar")
         self.style.theme_use(new_theme)
         self.update_treeview_colors()
+        self.update_status_colors()
+        self.update_table()  # Add this line to refresh the table
         if hasattr(self, 'analytics_view'):
             self.analytics_view.update_analytics(self.applications)
 
@@ -146,8 +155,10 @@ class ApplicationTracker:
         fg_color = self.style.colors.get('fg')
         self.style.configure('Treeview', background=bg_color, fieldbackground=bg_color, foreground=fg_color)
         self.style.configure('Treeview.Heading', background=self.style.colors.get('secondary'), foreground=fg_color)
-        for status, color in self.status_colors.items():
-            self.tree.tag_configure(status, background=self.style.colors.get(color), foreground=fg_color)
+
+    def update_application(self, app_id, updated_app):
+        update_application(app_id, updated_app)
+        self.update_table()
 
     def open_settings(self):
         SettingsWindow(self.master, self.refresh_ui)
@@ -202,6 +213,60 @@ class SettingsWindow:
         self.window.destroy()
         self.refresh_callback()
 
+class HelpWindow:
+    def __init__(self, master):
+        self.window = tk.Toplevel(master)
+        self.window.title("Job Application Tracker - Help")
+        self.window.geometry("600x400")
+        self.create_widgets()
+
+    def create_widgets(self):
+        frame = ttk.Frame(self.window, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        text = tk.Text(frame, wrap=tk.WORD, padx=10, pady=10)
+        text.pack(fill=tk.BOTH, expand=True)
+
+        help_text = """
+        Welcome to the Job Application Tracker!
+
+        Here's how to use the application:
+
+        1. Adding a New Application:
+           - Click the "Add New Application" button.
+           - Fill in the required details and click "Add Application".
+
+        2. Viewing Applications:
+           - All your applications are displayed in the main table.
+           - Double-click on an application to view or edit its details.
+
+        3. Editing an Application:
+           - Double-click on an application in the table.
+           - Update the information in the new window and click "Update Application".
+
+        4. Deleting an Application:
+           - Select an application in the table.
+           - Click the "Delete Selected" button.
+
+        5. Using the Map View:
+           - Click the "Open Map" button to see the geographical distribution of your applications.
+
+        6. Viewing Analytics:
+           - The right side of the main window shows various charts and statistics about your applications.
+
+        7. Changing Settings:
+           - Click the "Settings" button to customize the application theme and other options.
+
+        8. Reminders:
+           - The application will show reminders for follow-ups based on the reminder date you set for each application.
+
+        Remember to keep your application information up-to-date for the best experience!
+        """
+
+        text.insert(tk.END, help_text)
+        text.config(state=tk.DISABLED)  # Make the text widget read-only
+
+        ttk.Button(frame, text="Close", command=self.window.destroy).pack(pady=10)
 
 class AddApplicationWindow:
     def __init__(self, master, update_callback, settings):
@@ -409,6 +474,7 @@ class ApplicationDetailsWindow:
         self.app.reminder_date = self.reminder_date_entry.get().strip()
 
         add_or_update_application(self)
+        self.update_callback()
         messagebox.showinfo("Success", "Application updated successfully.")
 
     def update_roadmap(self):
@@ -495,7 +561,7 @@ class AnalyticsView:
         self.notebook.add(self.text_frame, text="Additional Statistics")
 
         self.text_widget = tk.Text(self.text_frame, wrap=tk.WORD, padx=10, pady=10, height=20,
-                                   bg=self.style.colors.get('bg'), fg=self.style.colors.get('fg'))
+                                   bg=self.style.colors.get('bg'), fg='white')  # Change text color to white
         self.text_widget.pack(fill=tk.BOTH, expand=True)
 
         self.update_analytics(self.applications)
@@ -523,18 +589,20 @@ class AnalyticsView:
         try:
             chart_func(frame)
         except Exception as e:
-            ttk.Label(frame, text=f"Not enough data to create chart.\nError: {str(e)}").pack(expand=True)
+            ttk.Label(frame, text=f"Not enough data to create chart.\nError: {str(e)}", foreground='white').pack(
+                expand=True)
 
     def create_status_chart(self, parent, stats):
         def chart(frame):
             statuses = stats['applications_per_status']
             fig, ax = plt.subplots(figsize=(6, 4), dpi=100, facecolor=self.style.colors.get('bg'))
-            colors = [self.style.colors.get(color, color) for color in ['primary', 'info', 'success', 'danger', 'warning']]
-            ax.pie(statuses.values(), labels=statuses.keys(), autopct='%1.1f%%', startangle=90, colors=colors)
+            colors = [self.style.colors.get(color) for color in ['primary', 'info', 'success', 'danger', 'warning']]
+            wedges, texts, autotexts = ax.pie(statuses.values(), labels=statuses.keys(), autopct='%1.1f%%',
+                                              startangle=90, colors=colors)
             ax.axis('equal')
-            ax.set_title('Application Statuses', color=self.style.colors.get('fg'))
-            plt.setp(ax.get_yticklabels(), color=self.style.colors.get('fg'))
-            plt.setp(ax.get_xticklabels(), color=self.style.colors.get('fg'))
+            ax.set_title('Application Statuses', color='white')
+            plt.setp(texts, color="white")  # Set label color to white
+            plt.setp(autotexts, color="white")  # Set percentage text color to white
             self.embed_chart(frame, fig)
 
         self.create_chart(parent, chart, 0, 0)
@@ -545,22 +613,22 @@ class AnalyticsView:
             months = [str(month) for month in applications_per_month.keys()]
             counts = list(applications_per_month.values())
 
-            fig, ax = plt.subplots(figsize=(6, 4), dpi=100, facecolor=self.style.colors.get('bg'))
+            fig, ax = plt.subplots(figsize=(6, 4), dpi=90, facecolor=self.style.colors.get('bg'))
 
             # Create the bar chart
             ax.bar(months, counts, color=self.style.colors.get('primary'))
 
             # Set the ticks and tick labels
-            ax.set_xticks(range(len(months)))  # Set the ticks to match the number of months
-            ax.set_xticklabels(months, rotation=45, ha='right')  # Now set the labels
+            ax.set_xticks(range(len(months)))
+            ax.set_xticklabels(months, rotation=45, ha='right')
 
-            # Set title and labels with the correct colors
-            ax.set_title('Applications per Month', color=self.style.colors.get('fg'))
-            ax.set_ylabel('Number of Applications', color=self.style.colors.get('fg'))
+            # Set title and labels with white color
+            ax.set_title('Applications per Month', color='white')
+            ax.set_ylabel('Number of Applications', color='white')
 
-            # Set the color for the tick labels
-            plt.setp(ax.get_yticklabels(), color=self.style.colors.get('fg'))
-            plt.setp(ax.get_xticklabels(), color=self.style.colors.get('fg'))
+            # Set the color for the tick labels to white
+            plt.setp(ax.get_yticklabels(), color='white')
+            plt.setp(ax.get_xticklabels(), color='white')
 
             plt.tight_layout()
             self.embed_chart(frame, fig)
@@ -573,13 +641,13 @@ class AnalyticsView:
             companies = list(applications_per_company.keys())[:5]  # Top 5 companies
             counts = list(applications_per_company.values())[:5]
 
-            fig, ax = plt.subplots(figsize=(6, 4), dpi=100, facecolor=self.style.colors.get('bg'))
+            fig, ax = plt.subplots(figsize=(6, 4), dpi=80, facecolor=self.style.colors.get('bg'))
             ax.barh(companies, counts, color=self.style.colors.get('info'))
-            ax.set_title('Top 5 Companies', color=self.style.colors.get('fg'))
-            ax.set_xlabel('Number of Applications', color=self.style.colors.get('fg'))
-            ax.set_ylabel('Company', color=self.style.colors.get('fg'))
-            plt.setp(ax.get_yticklabels(), color=self.style.colors.get('fg'))
-            plt.setp(ax.get_xticklabels(), color=self.style.colors.get('fg'))
+            ax.set_title('Top 5 Companies', color='white')
+            ax.set_xlabel('Number of Applications', color='white')
+            ax.set_ylabel('Company', color='white')
+            plt.setp(ax.get_yticklabels(), color='white')
+            plt.setp(ax.get_xticklabels(), color='white')
             plt.tight_layout()
             self.embed_chart(frame, fig)
 
@@ -591,14 +659,18 @@ class AnalyticsView:
             positions = list(applications_per_position.keys())[:5]  # Top 5 positions
             counts = list(applications_per_position.values())[:5]
 
-            fig, ax = plt.subplots(figsize=(6, 4), dpi=100, facecolor=self.style.colors.get('bg'))
+            fig, ax = plt.subplots(figsize=(6, 4), dpi=85, facecolor=self.style.colors.get('bg'))
             ax.barh(positions, counts, color=self.style.colors.get('success'))
-            ax.set_title('Top 5 Positions', color=self.style.colors.get('fg'))
-            ax.set_xlabel('Number of Applications', color=self.style.colors.get('fg'))
-            ax.set_ylabel('Position', color=self.style.colors.get('fg'))
-            plt.setp(ax.get_yticklabels(), color=self.style.colors.get('fg'))
-            plt.setp(ax.get_xticklabels(), color=self.style.colors.get('fg'))
+            ax.set_title('Top 5 Positions', color='white')
+            ax.set_xlabel('Number of Applications', color='white')
+            ax.set_ylabel('Position', color='white')
+            plt.setp(ax.get_yticklabels(), color='white')
+            plt.setp(ax.get_xticklabels(), color='white')
+
+            # Adjust layout to show full position names
             plt.tight_layout()
+            fig.subplots_adjust(left=0.3)  # Increase left margin to accommodate longer labels
+
             self.embed_chart(frame, fig)
 
         self.create_chart(parent, chart, 1, 1)
