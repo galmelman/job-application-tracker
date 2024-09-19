@@ -1,5 +1,6 @@
+from datetime import datetime, timedelta
+
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
 from database import get_all_applications, create_table, get_application_by_id, update_application, insert_application
 from controllers import add_or_update_application, edit_selected, delete_selected
 from utils import get_application_statistics, load_settings
@@ -20,10 +21,10 @@ from ttkbootstrap import Style
 class ApplicationTracker:
     def __init__(self, master):
         self.master = master
-        self.style = Style(theme="solar")
+        self.settings = load_settings()
+        self.style = Style(theme=self.settings.get("theme", "solar"))
         self.master.title("Job Application Tracker")
-        self.settings = load_settings('settings.json')
-        self.master.geometry("1950x1200")  # Increased window size
+        self.master.geometry("1950x1200")
         create_table()
         self.applications = get_all_applications()
         self.status_colors = {
@@ -89,12 +90,12 @@ class ApplicationTracker:
         self.update_table()
 
     def open_add_application_window(self):
-        AddApplicationWindow(self.master, self.update_table)
+        AddApplicationWindow(self.master, self.update_table, self.settings)
 
     def open_application_details(self, event):
         item = self.tree.selection()[0]
         app_id = self.tree.item(item, "values")[0]
-        ApplicationDetailsWindow(self.master, app_id, self.update_table)
+        ApplicationDetailsWindow(self.master, app_id, self.update_table, self.settings)
 
     def delete_selected(self):
         delete_selected(self.tree, self.update_table)
@@ -108,7 +109,8 @@ class ApplicationTracker:
             self.tree.item(item, tags=(app.status,))
 
         for status, color in self.status_colors.items():
-            self.tree.tag_configure(status, background=self.style.colors.get(color), foreground="black")
+            color = self.style.lookup(status, 'background')
+            self.tree.tag_configure(status, background=color, foreground="black")
 
         style = ttk.Style()
         style.configure('info.Treeview', background='black', foreground='white', fieldbackground='black')
@@ -125,20 +127,10 @@ class ApplicationTracker:
         self.tree.heading(col, command=lambda: self.sort_treeview(col, not reverse))
 
     def refresh_ui(self):
-        # Load the latest settings
-        self.settings = self.load_settings()
-
-        # Apply the theme
+        self.settings = load_settings()
         new_theme = self.settings.get("theme", "solar")
-        self.style = Style(theme=new_theme)
-
-        # Update the default status for new applications
-        self.default_status = self.settings.get("default_status", "Applied")
-
-        # Refresh the treeview colors
+        self.style.theme_use(new_theme)
         self.update_treeview_colors()
-
-        # Refresh the analytics view
         if hasattr(self, 'analytics_view'):
             self.analytics_view.update_analytics(self.applications)
 
@@ -150,30 +142,25 @@ class ApplicationTracker:
             return {"theme": "solar", "default_status": "Applied"}
 
     def update_treeview_colors(self):
-        # Update the treeview style based on the new theme
-        style = ttk.Style()
-        style.configure('Treeview', background=self.style.colors.get('bg'),
-                        fieldbackground=self.style.colors.get('bg'),
-                        foreground=self.style.colors.get('fg'))
-        style.configure('Treeview.Heading', background=self.style.colors.get('secondary'),
-                        foreground=self.style.colors.get('fg'))
-
-        # Refresh the status colors
+        bg_color = self.style.colors.get('bg')
+        fg_color = self.style.colors.get('fg')
+        self.style.configure('Treeview', background=bg_color, fieldbackground=bg_color, foreground=fg_color)
+        self.style.configure('Treeview.Heading', background=self.style.colors.get('secondary'), foreground=fg_color)
         for status, color in self.status_colors.items():
-            self.tree.tag_configure(status, background=self.style.colors.get(color),
-                                    foreground=self.style.colors.get('fg'))
+            self.tree.tag_configure(status, background=self.style.colors.get(color), foreground=fg_color)
 
     def open_settings(self):
-        SettingsWindow(self.master)
-        self.refresh_ui()  # Refresh the UI after settings are changed
+        SettingsWindow(self.master, self.refresh_ui)
 
 
 class SettingsWindow:
-    def __init__(self, master):
+    def __init__(self, master, refresh_callback):
+        self.master = master
         self.window = tk.Toplevel(master)
         self.window.title("Settings")
-        self.window.geometry("400x300")
-        self.settings = self.load_settings()
+        self.window.geometry("400x500")
+        self.settings = load_settings()
+        self.refresh_callback = refresh_callback
         self.create_widgets()
 
     def create_widgets(self):
@@ -181,44 +168,48 @@ class SettingsWindow:
         frame.pack(fill=tk.BOTH, expand=True)
 
         ttk.Label(frame, text="Theme:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.theme_combo = ttk.Combobox(frame, values=["light", "dark"], width=28)
+        self.theme_combo = ttk.Combobox(frame, values=["solar", "darkly", "superhero", "cosmo", "flatly", "litera"], width=28)
         self.theme_combo.grid(row=0, column=1, pady=5)
-        self.theme_combo.set(self.settings.get("theme", "light"))
+        self.theme_combo.set(self.settings.get("theme", "solar"))
 
         ttk.Label(frame, text="Default Status:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.default_status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected", "Withdrawn", "Awaiting Response"], width=28)
         self.default_status_combo.grid(row=1, column=1, pady=5)
         self.default_status_combo.set(self.settings.get("default_status", "Applied"))
 
-        ttk.Button(frame, text="Save Settings", command=self.save_settings).grid(row=2, column=0, columnspan=2, pady=20)
+        ttk.Label(frame, text="Email:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        self.email_entry = ttk.Entry(frame, width=30)
+        self.email_entry.grid(row=2, column=1, pady=5)
+        self.email_entry.insert(0, self.settings.get("email", ""))
 
-    def load_settings(self):
-        try:
-            with open('settings.json', 'r') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
+        self.mailing_var = tk.BooleanVar(value=self.settings.get("mailing_enabled", False))
+        self.mailing_check = ttk.Checkbutton(frame, text="Enable Mailing", variable=self.mailing_var)
+        self.mailing_check.grid(row=3, column=0, columnspan=2, pady=5)
+
+        ttk.Button(frame, text="Save Settings", command=self.save_settings).grid(row=4, column=0, columnspan=2, pady=20)
+
+
 
     def save_settings(self):
         settings = {
             "theme": self.theme_combo.get(),
-            "default_status": self.default_status_combo.get()
+            "default_status": self.default_status_combo.get(),
+            "email": self.email_entry.get(),
+            "mailing_enabled": self.mailing_var.get()
         }
         with open('settings.json', 'w') as f:
             json.dump(settings, f)
         self.window.destroy()
-
-        # Trigger the refresh_ui method of the parent ApplicationTracker
-        if isinstance(self.master, ApplicationTracker):
-            self.master.refresh_ui()
+        self.refresh_callback()
 
 
 class AddApplicationWindow:
-    def __init__(self, master, update_callback):
+    def __init__(self, master, update_callback, settings):
         self.window = tk.Toplevel(master)
         self.window.title("Add New Application")
-        self.window.geometry("400x300")
+        self.window.geometry("500x600")
         self.update_callback = update_callback
+        self.settings = settings
         self.create_widgets()
 
     def create_widgets(self):
@@ -236,41 +227,56 @@ class AddApplicationWindow:
         ttk.Label(frame, text="Date Applied (YYYY-MM-DD):").grid(row=2, column=0, sticky=tk.W, pady=5)
         self.date_applied_entry = ttk.Entry(frame, width=30)
         self.date_applied_entry.grid(row=2, column=1, pady=5)
+        self.date_applied_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
 
         ttk.Label(frame, text="Status:").grid(row=3, column=0, sticky=tk.W, pady=5)
-        self.status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected",
-                                                        "Withdrawn", "Awaiting Response"], width=28)
+        self.status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected", "Withdrawn", "Awaiting Response"], width=28)
         self.status_combo.grid(row=3, column=1, pady=5)
-        self.status_combo.set("Applied")
+        self.status_combo.set(self.settings.get("default_status", "Applied"))
 
-        ttk.Button(frame, text="Add Application", command=self.add_application, style='success.TButton').grid(row=4,
-                                                                                                              column=0,
-                                                                                                              columnspan=2,
-                                                                                                              pady=20)
+        ttk.Label(frame, text="Location (Full Address):").grid(row=4, column=0, sticky=tk.W, pady=5)
+        self.location_entry = ttk.Entry(frame, width=30)
+        self.location_entry.grid(row=4, column=1, pady=5)
+
+        ttk.Label(frame, text="Reminder Date (YYYY-MM-DD):").grid(row=5, column=0, sticky=tk.W, pady=5)
+        self.reminder_date_entry = ttk.Entry(frame, width=30)
+        self.reminder_date_entry.grid(row=5, column=1, pady=5)
+        self.reminder_date_entry.insert(0, (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"))
+
+        ttk.Button(frame, text="Add Application", command=self.add_application, style='success.TButton').grid(row=6, column=0, columnspan=2, pady=20)
+
+    def load_settings(self):
+        try:
+            with open('settings.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {"theme": "solar", "default_status": "Applied", "email": "", "mailing_enabled": False}
 
     def add_application(self):
         company = self.company_entry.get().strip()
         position = self.position_entry.get().strip()
         date_applied = self.date_applied_entry.get().strip()
         status = self.status_combo.get()
+        location = self.location_entry.get().strip()
+        reminder_date = self.reminder_date_entry.get().strip()
 
-        if not company or not position or not date_applied:
+        if not company or not position or not location :
             messagebox.showwarning("Input Error", "All fields are required.")
             return
 
-        new_app = JobApplication(company, position, date_applied, status)
-        insert_application(new_app)
-        self.update_callback()
+        new_app = JobApplication(company, position, date_applied, status, location=location, reminder_date=reminder_date)
+        add_or_update_application(self)
         self.window.destroy()
 
 
 class ApplicationDetailsWindow:
-    def __init__(self, master, app_id, update_callback):
+    def __init__(self, master, app_id, update_callback, settings):
         self.window = tk.Toplevel(master)
         self.window.title("Application Details")
-        self.window.geometry("800x600")
+        self.window.geometry("1000x1000")
         self.app_id = app_id
         self.update_callback = update_callback
+        self.settings = settings
         self.app = get_application_by_id(app_id)
         self.create_widgets()
 
@@ -339,8 +345,13 @@ class ApplicationDetailsWindow:
         self.interviewer_names_entry.grid(row=9, column=1, columnspan=2, pady=5)
         self.interviewer_names_entry.insert(0, self.app.interviewer_names)
 
+        ttk.Label(parent, text="Reminder Date:").grid(row=10, column=0, sticky=tk.W, pady=5)
+        self.reminder_date_entry = ttk.Entry(parent, width=30)
+        self.reminder_date_entry.grid(row=10, column=1, pady=5)
+        self.reminder_date_entry.insert(0, self.app.reminder_date if self.app.reminder_date else "")
+
         ttk.Button(parent, text="Update Application", command=self.update_application, style='success.TButton').grid(
-            row=10, column=0, columnspan=2, pady=20)
+            row=11, column=0, columnspan=2, pady=20)
 
     def create_roadmap_widgets(self, parent):
         stages = [
@@ -395,9 +406,9 @@ class ApplicationDetailsWindow:
         self.app.job_description = self.job_description_entry.get().strip()
         self.app.company_culture = self.company_culture_entry.get().strip()
         self.app.interviewer_names = self.interviewer_names_entry.get().strip()
+        self.app.reminder_date = self.reminder_date_entry.get().strip()
 
-        update_application(self.app_id, self.app)
-        self.update_callback()
+        add_or_update_application(self)
         messagebox.showinfo("Success", "Application updated successfully.")
 
     def update_roadmap(self):
@@ -535,12 +546,22 @@ class AnalyticsView:
             counts = list(applications_per_month.values())
 
             fig, ax = plt.subplots(figsize=(6, 4), dpi=100, facecolor=self.style.colors.get('bg'))
+
+            # Create the bar chart
             ax.bar(months, counts, color=self.style.colors.get('primary'))
-            ax.set_xticklabels(months, rotation=45, ha='right')
+
+            # Set the ticks and tick labels
+            ax.set_xticks(range(len(months)))  # Set the ticks to match the number of months
+            ax.set_xticklabels(months, rotation=45, ha='right')  # Now set the labels
+
+            # Set title and labels with the correct colors
             ax.set_title('Applications per Month', color=self.style.colors.get('fg'))
             ax.set_ylabel('Number of Applications', color=self.style.colors.get('fg'))
+
+            # Set the color for the tick labels
             plt.setp(ax.get_yticklabels(), color=self.style.colors.get('fg'))
             plt.setp(ax.get_xticklabels(), color=self.style.colors.get('fg'))
+
             plt.tight_layout()
             self.embed_chart(frame, fig)
 
