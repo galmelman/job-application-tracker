@@ -1,0 +1,152 @@
+import sqlite3
+import random
+from datetime import datetime, timedelta
+import os
+
+# List of random companies
+companies = [
+    "Google", "Microsoft", "Amazon", "Apple", "Facebook", "IBM", "Intel", "Oracle", "Cisco",
+    "Dell", "HP", "Lenovo", "NVIDIA", "AMD", "Tesla", "SpaceX", "Netflix", "Uber", "Airbnb",
+    "Twitter", "LinkedIn", "Salesforce", "Adobe", "VMware", "Qualcomm", "Intuit", "Autodesk",
+    "Slack", "Zoom", "Shopify", "Square", "Twilio", "Dropbox", "Box", "Palantir", "Snowflake"
+]
+
+# List of random positions
+positions = [
+    "Software Engineer", "Data Scientist", "Product Manager", "UX Designer", "DevOps Engineer",
+    "System Administrator", "Network Engineer", "Database Administrator", "AI Researcher",
+    "Cloud Architect", "Full Stack Developer", "Mobile App Developer", "QA Engineer",
+    "Business Analyst", "Technical Writer", "IT Support Specialist", "Security Analyst",
+    "Machine Learning Engineer", "Frontend Developer", "Backend Developer"
+]
+
+# List of random statuses
+statuses = ["Applied", "Interview Scheduled", "Offer Received", "Rejected", "Withdrawn", "Awaiting Response"]
+
+# List of random cities in Western USA
+cities_western_usa = [
+    "San Francisco, CA", "Los Angeles, CA", "Seattle, WA", "Portland, OR", "San Diego, CA",
+    "Las Vegas, NV", "Phoenix, AZ", "Denver, CO", "Salt Lake City, UT", "Boise, ID",
+    "Sacramento, CA", "San Jose, CA", "Reno, NV", "Albuquerque, NM", "Tucson, AZ"
+]
+
+def generate_random_date(start_date, end_date):
+    time_between_dates = end_date - start_date
+    days_between_dates = time_between_dates.days
+    random_number_of_days = random.randrange(days_between_dates)
+    return start_date + timedelta(days=random_number_of_days)
+
+def generate_reminder_date(date_applied):
+    # Reminder date is set randomly between 7 to 30 days after the application date
+    return date_applied + timedelta(days=random.randint(7, 30))
+
+def generate_random_applications(num_applications):
+    applications = []
+    start_date = datetime(2023, 1, 1)
+    end_date = datetime(2024, 3, 15)
+
+    for _ in range(num_applications):
+        company = random.choice(companies)
+        position = random.choice(positions)
+        date_applied = generate_random_date(start_date, end_date)
+        status = random.choice(statuses)
+        notes = f"Applied for {position} at {company}. Waiting for response."
+        reminder_date = generate_reminder_date(date_applied).strftime('%Y-%m-%d')
+        location = random.choice(cities_western_usa)
+
+        # Adding additional random values for new fields
+        application_submitted = "Yes" if random.choice([True, False]) else "No"
+        resume_screened = "Yes" if random.choice([True, False]) else "No"
+        phone_interview = "Completed" if random.choice([True, False]) else "Not Scheduled"
+        technical_interview = "Passed" if random.choice([True, False]) else "Not Scheduled"
+        onsite_interview = "Scheduled" if random.choice([True, False]) else "Not Scheduled"
+        offer_received = "Yes" if random.choice([True, False]) else "No"
+        offer_accepted = "Yes" if offer_received == "Yes" and random.choice([True, False]) else "No"
+        offer_rejected = "Yes" if offer_received == "Yes" and offer_accepted == "No" else "No"
+        salary_offered = round(random.uniform(50000, 200000), 2) if offer_received == "Yes" else None
+        job_description = f"Job description for {position} at {company}."
+        company_culture = f"Culture at {company} is {'positive' if random.choice([True, False]) else 'challenging'}."
+        interviewer_names = "John Doe, Jane Smith"
+        follow_up_dates = generate_reminder_date(date_applied).strftime('%Y-%m-%d')
+
+        applications.append((
+            company,
+            position,
+            date_applied.strftime('%Y-%m-%d'),
+            status,
+            notes,
+            reminder_date,
+            location,
+            application_submitted,
+            resume_screened,
+            phone_interview,
+            technical_interview,
+            onsite_interview,
+            offer_received,
+            offer_accepted,
+            offer_rejected,
+            salary_offered,
+            job_description,
+            company_culture,
+            interviewer_names,
+            follow_up_dates
+        ))
+
+    return applications
+
+def create_database(applications, db_path):
+    # Delete the existing database if it exists
+    if os.path.exists(db_path):
+        os.remove(db_path)
+
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # Create table with additional fields
+    c.execute('''CREATE TABLE IF NOT EXISTS applications
+                 (id INTEGER PRIMARY KEY,
+                  company TEXT,
+                  position TEXT,
+                  date_applied TEXT,
+                  status TEXT,
+                  notes TEXT,
+                  reminder_date TEXT,
+                  location TEXT,
+                  application_submitted TEXT,
+                  resume_screened TEXT,
+                  phone_interview TEXT,
+                  technical_interview TEXT,
+                  onsite_interview TEXT,
+                  offer_received TEXT,
+                  offer_accepted TEXT,
+                  offer_rejected TEXT,
+                  salary_offered REAL,
+                  job_description TEXT,
+                  company_culture TEXT,
+                  interviewer_names TEXT,
+                  follow_up_dates TEXT)''')
+
+    # Insert applications
+    c.executemany('''INSERT INTO applications
+                     (company, position, date_applied, status, notes, reminder_date, location,
+                      application_submitted, resume_screened, phone_interview, technical_interview,
+                      onsite_interview, offer_received, offer_accepted, offer_rejected, salary_offered,
+                      job_description, company_culture, interviewer_names, follow_up_dates)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', applications)
+
+    conn.commit()
+    conn.close()
+
+# Generate 30 random applications
+random_applications = generate_random_applications(30)
+
+# Specify the directory to save the database
+save_directory = os.path.expanduser(r"C:\Users\galme\תואר\projects\stam")
+db_filename = "job_applications.db"
+db_path = os.path.join(save_directory, db_filename)
+
+# Create the database with the random applications
+create_database(random_applications, db_path)
+
+print(f"Database '{db_filename}' has been created with 30 random job applications.")
+print(f"The database is saved at: {db_path}")
