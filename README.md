@@ -1,6 +1,5 @@
 # Job Application Tracker
 
-![analytics](assets/analyze.png)
 ![application info](assets/app_data.png)
 ![email system](assets/email.png)
 ![main](assets/main.png)
