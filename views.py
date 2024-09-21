@@ -1,8 +1,6 @@
-from datetime import datetime, timedelta
-
 import ttkbootstrap as ttk
 from database import get_all_applications, create_table, get_application_by_id, update_application, insert_application
-from controllers import add_or_update_application, edit_selected, delete_selected
+from controllers import add_or_update_application, validate_date, delete_selected,check_date
 from utils import get_application_statistics, load_settings
 from models import JobApplication
 import matplotlib.pyplot as plt
@@ -17,6 +15,12 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 import tkinter as tk
 from ttkbootstrap import Style
+from ttkbootstrap.dialogs import Querybox
+from datetime import datetime, timedelta
+
+
+
+
 
 class ApplicationTracker:
     def __init__(self, master):
@@ -119,6 +123,8 @@ class ApplicationTracker:
             self.tree.item(item, tags=(app.status,))
 
         self.update_status_colors()
+        self.analytics_view.update_analytics(self.applications)  # Update analytics here
+
 
     def update_status_colors(self):
         for status, color in self.status_colors.items():
@@ -289,10 +295,10 @@ class AddApplicationWindow:
         self.position_entry = ttk.Entry(frame, width=30)
         self.position_entry.grid(row=1, column=1, pady=5)
 
-        ttk.Label(frame, text="Date Applied (YYYY-MM-DD):").grid(row=2, column=0, sticky=tk.W, pady=5)
-        self.date_applied_entry = ttk.Entry(frame, width=30)
-        self.date_applied_entry.grid(row=2, column=1, pady=5)
-        self.date_applied_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
+        ttk.Label(frame, text="Date Applied:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        self.date_applied_picker = DateEntry(frame)
+        self.date_applied_picker.grid(row=2, column=1, pady=5)
+        self.date_applied_picker.set(datetime.now().strftime("%Y-%m-%d"))
 
         ttk.Label(frame, text="Status:").grid(row=3, column=0, sticky=tk.W, pady=5)
         self.status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected", "Withdrawn", "Awaiting Response"], width=28)
@@ -303,10 +309,10 @@ class AddApplicationWindow:
         self.location_entry = ttk.Entry(frame, width=30)
         self.location_entry.grid(row=4, column=1, pady=5)
 
-        ttk.Label(frame, text="Reminder Date (YYYY-MM-DD):").grid(row=5, column=0, sticky=tk.W, pady=5)
-        self.reminder_date_entry = ttk.Entry(frame, width=30)
-        self.reminder_date_entry.grid(row=5, column=1, pady=5)
-        self.reminder_date_entry.insert(0, (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"))
+        ttk.Label(frame, text="Reminder Date:").grid(row=5, column=0, sticky=tk.W, pady=5)
+        self.reminder_date_picker = DateEntry(frame)
+        self.reminder_date_picker.grid(row=5, column=1, pady=5)
+        self.reminder_date_picker.set((datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"))
 
         ttk.Button(frame, text="Add Application", command=self.add_application, style='success.TButton').grid(row=6, column=0, columnspan=2, pady=20)
 
@@ -320,12 +326,12 @@ class AddApplicationWindow:
     def add_application(self):
         company = self.company_entry.get().strip()
         position = self.position_entry.get().strip()
-        date_applied = self.date_applied_entry.get().strip()
+        date_applied = self.date_applied_picker.get()
+        reminder_date = self.reminder_date_picker.get()
         status = self.status_combo.get()
         location = self.location_entry.get().strip()
-        reminder_date = self.reminder_date_entry.get().strip()
 
-        if not company or not position or not location :
+        if not company or not position or not location:
             messagebox.showwarning("Input Error", "All fields are required.")
             return
 
@@ -370,9 +376,9 @@ class ApplicationDetailsWindow:
         self.position_entry.insert(0, self.app.position)
 
         ttk.Label(parent, text="Date Applied:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        self.date_applied_entry = ttk.Entry(parent, width=30)
-        self.date_applied_entry.grid(row=2, column=1, pady=5)
-        self.date_applied_entry.insert(0, self.app.date_applied)
+        self.date_applied_picker = DateEntry(parent)
+        self.date_applied_picker.grid(row=2, column=1, pady=5)
+        self.date_applied_picker.set(self.app.date_applied)
 
         ttk.Label(parent, text="Status:").grid(row=3, column=0, sticky=tk.W, pady=5)
         self.status_combo = ttk.Combobox(parent, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected",
@@ -411,9 +417,9 @@ class ApplicationDetailsWindow:
         self.interviewer_names_entry.insert(0, self.app.interviewer_names)
 
         ttk.Label(parent, text="Reminder Date:").grid(row=10, column=0, sticky=tk.W, pady=5)
-        self.reminder_date_entry = ttk.Entry(parent, width=30)
-        self.reminder_date_entry.grid(row=10, column=1, pady=5)
-        self.reminder_date_entry.insert(0, self.app.reminder_date if self.app.reminder_date else "")
+        self.reminder_date_picker = DateEntry(parent)
+        self.reminder_date_picker.grid(row=10, column=1, pady=5)
+        self.reminder_date_picker.set(self.app.reminder_date if self.app.reminder_date else "")
 
         ttk.Button(parent, text="Update Application", command=self.update_application, style='success.TButton').grid(
             row=11, column=0, columnspan=2, pady=20)
@@ -447,35 +453,22 @@ class ApplicationDetailsWindow:
             ttk.Label(frame, text=date if date else "Not yet").pack(side=tk.RIGHT, padx=5)
 
         # Edit roadmap
-        ttk.Label(edit_frame, text="Edit Roadmap", font=("", 14, "bold")).pack(pady=10)
         self.roadmap_entries = {}
         for stage, date in stages:
             frame = ttk.Frame(edit_frame)
             frame.pack(fill=tk.X, pady=5)
             ttk.Label(frame, text=stage + ":").pack(side=tk.LEFT, padx=5)
-            entry = ttk.Entry(frame, width=15)
-            entry.pack(side=tk.RIGHT, padx=5)
-            entry.insert(0, date if date else "")
-            self.roadmap_entries[stage] = entry
+            date_picker = DateEntry(frame)
+            date_picker.pack(side=tk.RIGHT, padx=5)
+
+            # Bind the validation function to the date entry widget
+            date_picker.bind("<FocusOut>", check_date)
+
+            if date:
+                date_picker.set(date)
+            self.roadmap_entries[stage] = date_picker
 
         ttk.Button(edit_frame, text="Update Roadmap", command=self.update_roadmap, style='info.TButton').pack(pady=20)
-
-    def update_application(self):
-        self.app.company = self.company_entry.get().strip()
-        self.app.position = self.position_entry.get().strip()
-        self.app.date_applied = self.date_applied_entry.get().strip()
-        self.app.status = self.status_combo.get()
-        self.app.notes = self.notes_entry.get().strip()
-        self.app.location = self.location_entry.get().strip()
-        self.app.salary_offered = float(self.salary_entry.get().strip()) if self.salary_entry.get().strip() else None
-        self.app.job_description = self.job_description_entry.get().strip()
-        self.app.company_culture = self.company_culture_entry.get().strip()
-        self.app.interviewer_names = self.interviewer_names_entry.get().strip()
-        self.app.reminder_date = self.reminder_date_entry.get().strip()
-
-        add_or_update_application(self)
-        self.update_callback()
-        messagebox.showinfo("Success", "Application updated successfully.")
 
     def update_roadmap(self):
         self.app.application_submitted = self.roadmap_entries["Application Submitted"].get()
@@ -490,6 +483,25 @@ class ApplicationDetailsWindow:
         update_application(self.app_id, self.app)
         self.update_callback()
         messagebox.showinfo("Success", "Roadmap updated successfully.")
+
+    def update_application(self):
+        self.app.company = self.company_entry.get().strip()
+        self.app.position = self.position_entry.get().strip()
+        self.app.date_applied = self.date_applied_picker.get()
+        self.app.reminder_date = self.reminder_date_picker.get()
+        self.app.status = self.status_combo.get()
+        self.app.notes = self.notes_entry.get().strip()
+        self.app.location = self.location_entry.get().strip()
+        self.app.salary_offered = float(self.salary_entry.get().strip()) if self.salary_entry.get().strip() else None
+        self.app.job_description = self.job_description_entry.get().strip()
+        self.app.company_culture = self.company_culture_entry.get().strip()
+        self.app.interviewer_names = self.interviewer_names_entry.get().strip()
+
+        add_or_update_application(self)
+        self.update_callback()
+        messagebox.showinfo("Success", "Application updated successfully.")
+
+
 
 class MapView:
     def __init__(self, master, applications):
@@ -531,6 +543,27 @@ class MapView:
 
         os.remove(map_file)  # Clean up the HTML file after loading
 
+class DateEntry(ttk.Frame):
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent)
+        self.entry = ttk.Entry(self, width=12)
+        self.entry.pack(side=tk.LEFT, padx=(0, 5))
+        self.button = ttk.Button(self, text="Date", width=3, command=self.show_date_picker)
+        self.button.pack(side=tk.LEFT)
+
+    def show_date_picker(self):
+        current_date = self.entry.get() or datetime.now().strftime('%Y-%m-%d')
+        date = Querybox.get_date(title="Select Date")
+        if date:
+            self.entry.delete(0, tk.END)
+            self.entry.insert(0, date.strftime('%Y-%m-%d'))
+
+    def get(self):
+        return self.entry.get()
+
+    def set(self, date):
+        self.entry.delete(0, tk.END)
+        self.entry.insert(0, date)
 
 class AnalyticsView:
     def __init__(self, master, applications):

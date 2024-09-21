@@ -6,13 +6,14 @@ from models import JobApplication
 from database import insert_application, update_application, delete_application
 from datetime import datetime
 
+
 def add_or_update_application(self):
     company = self.company_entry.get().strip()
     position = self.position_entry.get().strip()
-    date_applied = self.date_applied_entry.get().strip()
+    date_applied = self.date_applied_picker.get()
     status = self.status_combo.get()
     notes = self.notes_entry.get().strip() if hasattr(self, 'notes_entry') else ""
-    reminder_date = self.reminder_date_entry.get().strip() if hasattr(self, 'reminder_date_entry') else ""
+    reminder_date = self.reminder_date_picker.get()
     location = self.location_entry.get().strip()
     salary_offered = self.salary_entry.get().strip() if hasattr(self, 'salary_entry') else None
     job_description = self.job_description_entry.get().strip() if hasattr(self, 'job_description_entry') else ""
@@ -103,6 +104,18 @@ def validate_date(date_string):
         return True
     except ValueError:
         return False
+
+
+def check_date(event):
+    entered_date = event.widget.get()
+
+    # Validate the entered date
+    if not validate_date(entered_date):
+        messagebox.showerror("Invalid Date", "Please enter a valid date (YYYY-MM-DD).")
+        #event.widget.delete(0, tk.END)  # Clear the invalid input
+        event.widget.focus()  # Set focus back to the date entry
+
+
 
 def validate_location(location):
     geolocator = Nominatim(user_agent="job_application_tracker")
