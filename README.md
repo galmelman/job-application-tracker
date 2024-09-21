@@ -1,5 +1,14 @@
 # Job Application Tracker
 
+![analytics](assets/analyze.png)
+![application info](assets/app_data.png)
+![email system](assets/email.png)
+![main](assets/main.png)
+![active job map](assets/map.png)
+![adding new application](assets/new_app.png)
+![settings](assets/settings.png)
+
+
 ## Overview
 
 Job Application Tracker is a comprehensive desktop application designed to help job seekers manage and organize their job application process. Built with Python and Tkinter, this application provides an intuitive interface for tracking job applications, analyzing application data, and managing the job search process effectively.
