@@ -9,11 +9,20 @@ import numpy as np
 import json, os
 
 
-def load_settings(file_path):
+def load_settings(file_path='settings.json'):
+    default_settings = {
+        "theme": "solar",
+        "default_status": "Applied",
+        "email": "",
+        "mailing_enabled": False
+    }
+
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
-            return json.load(file)
-    return {}
+            loaded_settings = json.load(file)
+            default_settings.update(loaded_settings)
+
+    return default_settings
 
 
 def check_email_feature_enabled(settings):
@@ -22,7 +31,7 @@ def check_email_feature_enabled(settings):
 
 def check_reminders(applications, settings):
     today = datetime.now().date()
-    email_feature_enabled = settings.get('email_reminders', False)
+    email_feature_enabled = settings.get('mailing_enabled', False)
 
     for app in applications:
         if app.reminder_date and not app.status == 'Rejected' and datetime.strptime(app.reminder_date, "%Y-%m-%d").date() < today:
@@ -74,7 +83,7 @@ def show_reminder_popup(application):
 
 
 def setup_reminder_check(master, applications, settings):
-    check_reminders(applications,settings)
+    check_reminders(applications, settings)
     master.after(86400000, lambda: setup_reminder_check(master, applications,settings))  # Check every 24 hours
 
 

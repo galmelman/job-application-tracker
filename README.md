@@ -1,125 +1,66 @@
-
 # Job Application Tracker
 
 ## Overview
 
-The Job Application Tracker is a desktop application built using Python and Tkinter. It helps users efficiently manage and track their job applications, providing a user-friendly interface for data entry, visualization, and analysis.
+Job Application Tracker is a comprehensive desktop application designed to help job seekers manage and organize their job application process. Built with Python and Tkinter, this application provides an intuitive interface for tracking job applications, analyzing application data, and managing the job search process effectively.
 
 ## Features
 
-- **Application Management**: 
-  - Add, update, and delete job applications with ease.
-  - Track key information such as company name, position, application date, status, notes, reminder dates, and location.
-- **Interactive User Interface**: 
-  - Clean and intuitive Tkinter-based GUI for smooth user interaction.
-  - Color-coded application status for quick visual reference.
-- **Data Persistence**: 
-  - SQLite database integration for reliable storage and retrieval of application data.
-- **Reminder System**: 
-  - Set and manage reminders for follow-up actions on your applications.
-  - Automatically sends follow-up email reminders when the reminder date for an application is due.
-  - Popup window to alert when the reminder date for an application is due.
-- **Email Notifications**:
-  - Configure email settings to receive reminders about application follow-ups.
-  - Enable or disable email reminders through the settings menu.
-  - Utilizes the `smtplib` library for sending emails.
-- **Advanced Analytics and Visualization**: 
-  - Real-time statistics and charts for insightful analysis of your job search progress.
-  - Uses `pandas` for data manipulation and analysis.
-  - Pie chart for application status distribution using `matplotlib`.
-  - Bar charts for applications per month, company, and position .
-  - Additional statistics including total applications, average applications per month, success rate, and average response time.
-- **Sorting Functionality**: 
-  - Sort applications by any column for easy data organization.
-- **Map View**: 
-  - Open a map view showing job application locations with interactive markers.
-  - Visualize application locations on a map, centered on Israel, using `folium` and `webview`.
-- **Settings**:
-  - Customize application settings, including email preferences.
-
+- **Application Management**: Add, edit, and delete job applications with ease.
+- **Detailed Application Tracking**: Record company details, position, application date, status, notes, and more.
+- **Application Roadmap**: Track the progress of each application through various stages (e.g., resume screened, interview scheduled, offer received).
+- **Interactive Map View**: Visualize the geographical distribution of your job applications.
+- **Analytics Dashboard**: Gain insights into your job search with charts and statistics.
+- **Reminders**: Set and receive reminders for follow-ups and important dates with email system.
+- **Customizable Settings**: Personalize the application theme and default values.
+- **Data Persistence**: All data is stored locally in a SQLite database.
 
 ## Installation
 
-1. Clone the repository:
+1. Ensure you have Python 3.7+ installed on your system.
+2. Clone this repository:
    ```
    git clone https://github.com/yourusername/job-application-tracker.git
    ```
-
-2. Navigate to the project directory:
+3. Navigate to the project directory:
    ```
    cd job-application-tracker
    ```
-
-3. Install the required dependencies:
+4. Install the required dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-4. Run the application:
-   ```
-   python main.py
-   ```
+## Usage
 
-## Dependencies
+To start the application, run:
 
-See `requirements.txt` for a full list of dependencies.
+```
+python main.py
+```
 
-## How to Use
+### Main Features:
 
-1. **Adding a New Application**: 
-   - Fill in the application details in the input fields.
-   - Click "Add/Update Application" to save the entry.
-
-2. **Editing an Application**: 
-   - Select an application from the list.
-   - Modify the details in the input fields.
-   - Click "Add/Update Application" to save changes.
-
-3. **Deleting an Application**: 
-   - Select an application from the list.
-   - Click "Delete Selected" to remove the entry.
-
-4. **Setting Reminders**: 
-   - Enter a reminder date when adding or updating an application.
-   - The system will notify you when it's time to follow up.
-
-5. **Viewing Analytics**: 
-   - Click "View Analytics" to open the analytics window.
-   - Explore various charts and statistics about your job applications.
-
-6. **Sorting Applications**: 
-   - Click on any column header in the main view to sort applications by that criteria.
-
-7. **Viewing the Map**: 
-   - Click "Open Map" to view the map with markers for job application locations.
-   - The map opens in a new window and shows application locations centered on Israel.
-
-8. **Configuring Settings**:
-   - Click "Settings" to open the settings window.
-   - Enter your email address and enable/disable email reminders.
-
-## Project Structure
-
-- `main.py`: Entry point of the application
-- `views.py`: Main GUI implementation, analytics view, and settings window
-- `controllers.py`: Logic for adding, updating, and deleting applications
-- `models.py`: Definition of the JobApplication class
-- `database.py`: SQLite database operations
-- `utils.py`: Utility functions for reminders, statistics generation, and email sending
+1. **Adding a New Application**: Click "Add New Application" and fill in the details.
+2. **Viewing Applications**: All applications are displayed in the main table.
+3. **Editing an Application**: Double-click on an application in the table to view or edit its details.
+4. **Deleting an Application**: Select an application and click "Delete Selected".
+5. **Map View**: Click "Open Map" to see the geographical distribution of your applications.
+6. **Analytics**: View charts and statistics about your applications on the right side of the main window.
+7. **Settings**: Click "Settings" to customize the application theme and receiving email reminders.
+8. **Help**: Click "Help" to get step-by-step instructions that explain how to use each feature of the app.
 
 ## Contributing
 
-Contributions to improve the Job Application Tracker are welcome. Please follow these steps to contribute:
+Contributions to the Job Application Tracker are welcome! Here are some ways you can contribute:
 
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature-branch`)
-3. Make your changes and commit them (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin feature-branch`)
-5. Create a new Pull Request
+1. Report bugs and suggest features by opening issues.
+2. Submit pull requests with bug fixes or new features.
+3. Improve documentation or add translations.
 
-## examples
 
-![Application Screenshot](./assets/table.png)
-![Application Screenshot](./assets/map.png)
-![Application Screenshot](assets/email.png)
-![Application Screenshot](./assets/analyze.png)
+## Support
+
+If you encounter any issues or have questions, please file an issue on the GitHub repository.
+
+Happy job hunting!
