@@ -1,6 +1,6 @@
 import ttkbootstrap as ttk
 from database import get_all_applications, create_table, get_application_by_id, update_application, insert_application
-from controllers import add_or_update_application, validate_date, delete_selected,check_date
+from controllers import add_or_update_application, validate_date, delete_selected, check_date
 from utils import get_application_statistics, load_settings
 from models import JobApplication
 import matplotlib.pyplot as plt
@@ -19,144 +19,189 @@ from ttkbootstrap.dialogs import Querybox
 from datetime import datetime, timedelta
 
 
-
-
-
 class ApplicationTracker:
     def __init__(self, master):
         self.master = master
-        self.settings = load_settings()
-        self.style = Style(theme=self.settings.get("theme", "solar"))
-        self.master.title("Job Application Tracker")
-        self.master.geometry("1950x1200")
-        create_table()
-        self.applications = get_all_applications()
-        self.status_colors = {
-            "Applied": "secondary",
-            "Interview Scheduled": "primary",
-            "Offer Received": "success",
-            "Rejected": "danger",
-            "Withdrawn": "dark",
-            "Awaiting Response": "info"
-        }
-        self.create_widgets()
-        self.update_status_colors()
+        try:
+            self.settings = self.load_settings()
+            self.style = Style(theme=self.settings.get("theme", "solar"))
+            self.master.title("Job Application Tracker")
+            self.master.geometry("1950x1200")
+
+            try:
+                create_table()
+                self.applications = get_all_applications()
+            except Exception as e:
+                messagebox.showerror("Database Error", f"Failed to initialize database , make sure valid data base is "
+                                                       f"in project files: {str(e)}")
+                self.applications = []
+
+            self.status_colors = {
+                "Applied": "secondary",
+                "Interview Scheduled": "primary",
+                "Offer Received": "success",
+                "Rejected": "danger",
+                "Withdrawn": "dark",
+                "Awaiting Response": "info"
+            }
+            self.create_widgets()
+            self.update_status_colors()
+        except Exception as e:
+            messagebox.showerror("Initialization Error", f"Failed to initialize application: {str(e)}")
 
     def create_widgets(self):
-        main_frame = ttk.Frame(self.master, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        try:
+            main_frame = ttk.Frame(self.master, padding="20")
+            main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Create left frame for table
-        left_frame = ttk.Frame(main_frame)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            # Create left frame for table
+            left_frame = ttk.Frame(main_frame)
+            left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Table Frame
-        table_frame = ttk.Frame(left_frame)
-        table_frame.pack(fill=tk.BOTH, expand=True)
+            # Table Frame
+            table_frame = ttk.Frame(left_frame)
+            table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Configure style for Treeview
-        self.style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
-        self.style.configure("Treeview.Heading", background="gray20", foreground="white")
+            # Configure style for Treeview
+            self.style.configure("Treeview", background="black", fieldbackground="black", foreground="white")
+            self.style.configure("Treeview.Heading", background="gray20", foreground="white")
 
-        # Treeview
-        self.tree = ttk.Treeview(table_frame, columns=("ID", "Company", "Position", "Date Applied", "Status"),
-                                 show="headings", style='Treeview')
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            # Treeview
+            self.tree = ttk.Treeview(table_frame, columns=("ID", "Company", "Position", "Date Applied", "Status"),
+                                     show="headings", style='Treeview')
+            self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.tree.configure(yscrollcommand=scrollbar.set)
+            # Scrollbar
+            scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            self.tree.configure(yscrollcommand=scrollbar.set)
 
-        # Treeview Headings
-        for col in ("ID", "Company", "Position", "Date Applied", "Status"):
-            self.tree.heading(col, text=col, command=lambda _col=col: self.sort_treeview(_col, False))
-            self.tree.column(col, width=100)
+            # Treeview Headings
+            for col in ("ID", "Company", "Position", "Date Applied", "Status"):
+                self.tree.heading(col, text=col, command=lambda _col=col: self.sort_treeview(_col, False))
+                self.tree.column(col, width=100)
 
-        # Bind double-click event
-        self.tree.bind("<Double-1>", self.open_application_details)
+            # Bind double-click event
+            self.tree.bind("<Double-1>", self.open_application_details)
 
-        # set map view object
-        self.map_view = MapView(self.master, self.applications)
+            # set map view object
+            try:
+                self.map_view = MapView(self.master, self.applications)
+            except Exception as e:
+                messagebox.showwarning("Map View Error", f"Failed to initialize map view: {str(e)}")
+                self.map_view = None
 
-        # Buttons Frame
-        button_frame = ttk.Frame(left_frame, padding="20")
-        button_frame.pack(fill=tk.X)
+            # Buttons Frame
+            button_frame = ttk.Frame(left_frame, padding="20")
+            button_frame.pack(fill=tk.X)
 
-        ttk.Button(button_frame, text="Add New Application", command=self.open_add_application_window,
-                   style='success.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Delete Selected", command=self.delete_selected, style='danger.TButton').pack(
-            side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Open Map", command=self.map_view.open_map_view,
-                   style='info.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Settings", command=self.open_settings, style='secondary.TButton').pack(
-            side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Help", command=self.open_help_window, style='info.TButton').pack(
-            side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Add New Application", command=self.open_add_application_window,
+                       style='success.TButton').pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Delete Selected", command=self.delete_selected, style='danger.TButton').pack(
+                side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Open Map", command=self.open_map,
+                       style='info.TButton').pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Settings", command=self.open_settings, style='secondary.TButton').pack(
+                side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Help", command=self.open_help_window, style='info.TButton').pack(
+                side=tk.LEFT, padx=5)
 
-        # Create right frame for analytics
-        right_frame = ttk.Frame(main_frame)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+            # Create right frame for analytics
+            right_frame = ttk.Frame(main_frame)
+            right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Add analytics to right frame
-        self.analytics_view = AnalyticsView(right_frame, self.applications)
+            # Add analytics to right frame
+            try:
+                self.analytics_view = AnalyticsView(right_frame, self.applications)
+            except Exception as e:
+                messagebox.showwarning("Analytics Error",
+                                       f"Failed to initialize analytics view, make sure valid data base is "
+                                       f"in project files: {str(e)}")
+                self.analytics_view = None
 
-        self.update_table()
+            self.update_table()
+        except Exception as e:
+            messagebox.showerror("Widget Creation Error", f"Failed to create widgets: {str(e)}")
 
     def open_help_window(self):
-        HelpWindow(self.master)
+        try:
+            HelpWindow(self.master)
+        except Exception as e:
+            messagebox.showerror("Help Window Error", f"Failed to open help window: {str(e)}")
 
     def open_add_application_window(self):
-        AddApplicationWindow(self.master, self.update_table, self.settings)
+        try:
+            AddApplicationWindow(self.master, self.update_table, self.settings)
+        except Exception as e:
+            messagebox.showerror("Add Application Error", f"Failed to open add application window: {str(e)}")
 
     def open_application_details(self, event):
-        item = self.tree.selection()[0]
-        app_id = self.tree.item(item, "values")[0]
-        ApplicationDetailsWindow(self.master, app_id, self.update_table, self.settings)
+        try:
+            item = self.tree.selection()[0]
+            app_id = self.tree.item(item, "values")[0]
+            ApplicationDetailsWindow(self.master, app_id, self.update_table, self.settings)
+        except IndexError:
+            messagebox.showwarning("Selection Error", "Please select an application to view details.")
+        except Exception as e:
+            messagebox.showerror("Application Details Error", f"Failed to open application details: {str(e)}")
 
     def delete_selected(self):
-        delete_selected(self.tree, self.update_table)
+        try:
+            delete_selected(self.tree, self.update_table)
+        except Exception as e:
+            messagebox.showerror("Delete Error", f"Failed to delete selected application(s): {str(e)}")
 
     def update_table(self):
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        self.applications = get_all_applications()
-        for app in self.applications:
-            item = self.tree.insert("", "end", values=(app.id, app.company, app.position, app.date_applied, app.status))
-            self.tree.item(item, tags=(app.status,))
+        try:
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            self.applications = get_all_applications()
+            for app in self.applications:
+                item = self.tree.insert("", "end",
+                                        values=(app.id, app.company, app.position, app.date_applied, app.status))
+                self.tree.item(item, tags=(app.status,))
 
-            # Update the status colors in the table
             self.update_status_colors()
 
-            # Update analytics based on the refreshed applications
-            self.analytics_view.update_analytics(self.applications)
+            if self.analytics_view:
+                self.analytics_view.update_analytics(self.applications)
 
-            # Refresh the map view with the updated applications
-            self.map_view.update_map_data(self.applications)
-
+            if self.map_view:
+                self.map_view.update_map_data(self.applications)
+        except Exception as e:
+            messagebox.showerror("Update Table Error", f"Failed to update table: {str(e)}")
 
     def update_status_colors(self):
-        for status, color in self.status_colors.items():
-            bg_color = self.style.lookup(color + '.TButton', 'background')
-            fg_color = self.style.lookup(color + '.TButton', 'foreground')
-            self.tree.tag_configure(status, background=bg_color, foreground=fg_color)
+        try:
+            for status, color in self.status_colors.items():
+                bg_color = self.style.lookup(color + '.TButton', 'background')
+                fg_color = self.style.lookup(color + '.TButton', 'foreground')
+                self.tree.tag_configure(status, background=bg_color, foreground=fg_color)
+        except Exception as e:
+            messagebox.showwarning("Color Update Error", f"Failed to update status colors: {str(e)}")
 
     def sort_treeview(self, col, reverse):
-        items = [(self.tree.set(item_id, col), item_id) for item_id in self.tree.get_children('')]
-        items.sort(reverse=reverse)
-        for index, (value, item_id) in enumerate(items):
-            self.tree.move(item_id, '', index)
-        self.tree.heading(col, command=lambda: self.sort_treeview(col, not reverse))
+        try:
+            items = [(self.tree.set(item_id, col), item_id) for item_id in self.tree.get_children('')]
+            items.sort(reverse=reverse)
+            for index, (value, item_id) in enumerate(items):
+                self.tree.move(item_id, '', index)
+            self.tree.heading(col, command=lambda: self.sort_treeview(col, not reverse))
+        except Exception as e:
+            messagebox.showerror("Sort Error", f"Failed to sort treeview: {str(e)}")
 
     def refresh_ui(self):
-        self.settings = load_settings()
-        new_theme = self.settings.get("theme", "solar")
-        self.style.theme_use(new_theme)
-        self.update_treeview_colors()
-        self.update_status_colors()
-        self.update_table()  # Add this line to refresh the table
-        if hasattr(self, 'analytics_view'):
-            self.analytics_view.update_analytics(self.applications)
+        try:
+            self.settings = self.load_settings()
+            new_theme = self.settings.get("theme", "solar")
+            self.style.theme_use(new_theme)
+            self.update_treeview_colors()
+            self.update_status_colors()
+            self.update_table()
+            if self.analytics_view:
+                self.analytics_view.update_analytics(self.applications)
+        except Exception as e:
+            messagebox.showerror("Refresh UI Error", f"Failed to refresh UI: {str(e)}")
 
     def load_settings(self):
         try:
@@ -164,19 +209,40 @@ class ApplicationTracker:
                 return json.load(f)
         except FileNotFoundError:
             return {"theme": "solar", "default_status": "Applied"}
+        except Exception as e:
+            messagebox.showwarning("Settings Error", f"Failed to load settings: {str(e)}")
+            return {"theme": "solar", "default_status": "Applied"}
 
     def update_treeview_colors(self):
-        bg_color = self.style.colors.get('bg')
-        fg_color = self.style.colors.get('fg')
-        self.style.configure('Treeview', background=bg_color, fieldbackground=bg_color, foreground=fg_color)
-        self.style.configure('Treeview.Heading', background=self.style.colors.get('secondary'), foreground=fg_color)
+        try:
+            bg_color = self.style.colors.get('bg')
+            fg_color = self.style.colors.get('fg')
+            self.style.configure('Treeview', background=bg_color, fieldbackground=bg_color, foreground=fg_color)
+            self.style.configure('Treeview.Heading', background=self.style.colors.get('secondary'), foreground=fg_color)
+        except Exception as e:
+            messagebox.showwarning("Color Update Error", f"Failed to update treeview colors: {str(e)}")
 
     def update_application(self, app_id, updated_app):
-        update_application(app_id, updated_app)
-        self.update_table()
+        try:
+            update_application(app_id, updated_app)
+            self.update_table()
+        except Exception as e:
+            messagebox.showerror("Update Error", f"Failed to update application: {str(e)}")
 
     def open_settings(self):
-        SettingsWindow(self.master, self.refresh_ui)
+        try:
+            SettingsWindow(self.master, self.refresh_ui)
+        except Exception as e:
+            messagebox.showerror("Settings Error", f"Failed to open settings window: {str(e)}")
+
+    def open_map(self):
+        if self.map_view:
+            try:
+                self.map_view.open_map_view()
+            except Exception as e:
+                messagebox.showerror("Map View Error", f"Failed to open map view: {str(e)}")
+        else:
+            messagebox.showwarning("Map View Unavailable", "Map view is not available.")
 
 
 class SettingsWindow:
@@ -194,12 +260,15 @@ class SettingsWindow:
         frame.pack(fill=tk.BOTH, expand=True)
 
         ttk.Label(frame, text="Theme:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.theme_combo = ttk.Combobox(frame, values=["solar", "darkly", "superhero", "cosmo", "flatly", "litera"], width=28)
+        self.theme_combo = ttk.Combobox(frame, values=["solar", "darkly", "superhero", "cosmo", "flatly", "litera"],
+                                        width=28)
         self.theme_combo.grid(row=0, column=1, pady=5)
         self.theme_combo.set(self.settings.get("theme", "solar"))
 
         ttk.Label(frame, text="Default Status:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        self.default_status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected", "Withdrawn", "Awaiting Response"], width=28)
+        self.default_status_combo = ttk.Combobox(frame,
+                                                 values=["Applied", "Interview Scheduled", "Offer Received", "Rejected",
+                                                         "Withdrawn", "Awaiting Response"], width=28)
         self.default_status_combo.grid(row=1, column=1, pady=5)
         self.default_status_combo.set(self.settings.get("default_status", "Applied"))
 
@@ -214,8 +283,6 @@ class SettingsWindow:
 
         ttk.Button(frame, text="Save Settings", command=self.save_settings).grid(row=4, column=0, columnspan=2, pady=20)
 
-
-
     def save_settings(self):
         settings = {
             "theme": self.theme_combo.get(),
@@ -227,6 +294,7 @@ class SettingsWindow:
             json.dump(settings, f)
         self.window.destroy()
         self.refresh_callback()
+
 
 class HelpWindow:
     def __init__(self, master):
@@ -283,6 +351,7 @@ class HelpWindow:
 
         ttk.Button(frame, text="Close", command=self.window.destroy).pack(pady=10)
 
+
 class AddApplicationWindow:
     def __init__(self, master, update_callback, settings):
         self.window = tk.Toplevel(master)
@@ -310,7 +379,8 @@ class AddApplicationWindow:
         self.date_applied_picker.set(datetime.now().strftime("%Y-%m-%d"))
 
         ttk.Label(frame, text="Status:").grid(row=3, column=0, sticky=tk.W, pady=5)
-        self.status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected", "Withdrawn", "Awaiting Response"], width=28)
+        self.status_combo = ttk.Combobox(frame, values=["Applied", "Interview Scheduled", "Offer Received", "Rejected",
+                                                        "Withdrawn", "Awaiting Response"], width=28)
         self.status_combo.grid(row=3, column=1, pady=5)
         self.status_combo.set(self.settings.get("default_status", "Applied"))
 
@@ -323,7 +393,10 @@ class AddApplicationWindow:
         self.reminder_date_picker.grid(row=5, column=1, pady=5)
         self.reminder_date_picker.set((datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"))
 
-        ttk.Button(frame, text="Add Application", command=self.add_application, style='success.TButton').grid(row=6, column=0, columnspan=2, pady=20)
+        ttk.Button(frame, text="Add Application", command=self.add_application, style='success.TButton').grid(row=6,
+                                                                                                              column=0,
+                                                                                                              columnspan=2,
+                                                                                                              pady=20)
 
     def load_settings(self):
         try:
@@ -344,7 +417,8 @@ class AddApplicationWindow:
             messagebox.showwarning("Input Error", "All fields are required.")
             return
 
-        new_app = JobApplication(company, position, date_applied, status, location=location, reminder_date=reminder_date)
+        new_app = JobApplication(company, position, date_applied, status, location=location,
+                                 reminder_date=reminder_date)
         add_or_update_application(self)
         self.window.destroy()
 
@@ -511,7 +585,6 @@ class ApplicationDetailsWindow:
         messagebox.showinfo("Success", "Application updated successfully.")
 
 
-
 class MapView:
     def __init__(self, master, applications):
         self.master = master
@@ -521,7 +594,6 @@ class MapView:
 
     def open_map_view(self):
         # Create a window to display the map
-
 
         m = folium.Map(location=[31.0461, 34.8516],
                        zoom_start=8)  # Latitude and Longitude for Israel, feel free to change it
@@ -779,9 +851,3 @@ class AnalyticsView:
 
         self.text_widget.insert(tk.END, header + stats_text)
         self.text_widget.config(state=tk.DISABLED)  # Make the text widget read-only
-
-
-
-
-
-
