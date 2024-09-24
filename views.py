@@ -76,6 +76,9 @@ class ApplicationTracker:
         # Bind double-click event
         self.tree.bind("<Double-1>", self.open_application_details)
 
+        # set map view object
+        self.map_view = MapView(self.master, self.applications)
+
         # Buttons Frame
         button_frame = ttk.Frame(left_frame, padding="20")
         button_frame.pack(fill=tk.X)
@@ -84,7 +87,7 @@ class ApplicationTracker:
                    style='success.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Delete Selected", command=self.delete_selected, style='danger.TButton').pack(
             side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Open Map", command=MapView(self.master, self.applications).open_map_view,
+        ttk.Button(button_frame, text="Open Map", command=self.map_view.open_map_view,
                    style='info.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Settings", command=self.open_settings, style='secondary.TButton').pack(
             side=tk.LEFT, padx=5)
@@ -122,8 +125,14 @@ class ApplicationTracker:
             item = self.tree.insert("", "end", values=(app.id, app.company, app.position, app.date_applied, app.status))
             self.tree.item(item, tags=(app.status,))
 
-        self.update_status_colors()
-        self.analytics_view.update_analytics(self.applications)  # Update analytics here
+            # Update the status colors in the table
+            self.update_status_colors()
+
+            # Update analytics based on the refreshed applications
+            self.analytics_view.update_analytics(self.applications)
+
+            # Refresh the map view with the updated applications
+            self.map_view.update_map_data(self.applications)
 
 
     def update_status_colors(self):
@@ -508,6 +517,7 @@ class MapView:
         self.master = master
         self.applications = applications
         self.geolocator = Nominatim(user_agent="job_application_tracker")
+        self.cached_locations = {}  # Cache to store geocoded locations
 
     def open_map_view(self):
         # Create a window to display the map
@@ -521,27 +531,68 @@ class MapView:
         # Add markers for each application location
         marker_cluster = MarkerCluster().add_to(m)
 
+        # Iterate over applications and add markers for valid locations
         for app in self.applications:
             if app.location and app.status != "Rejected":
-                try:
-                    location = self.geolocator.geocode(app.location)
-                    if location:
-                        folium.Marker(
-                            [location.latitude, location.longitude],
-                            popup=f"{app.company} - {app.position}",
-                            tooltip=app.location
-                        ).add_to(marker_cluster)
-                except (GeocoderTimedOut, GeocoderUnavailable):
-                    print(f"Geocoding failed for location: {app.location}")
+                location = self.get_cached_location(app.location)
+                if location:
+                    folium.Marker(
+                        [location.latitude, location.longitude],
+                        popup=f"{app.company} - {app.position}",
+                        tooltip=app.location
+                    ).add_to(marker_cluster)
 
+        # Save the map to an HTML file
         map_file = "job_locations_map.html"
         m.save(map_file)
 
-        # Use PyWebview to display the HTML map
+        # Use PyWebview to display the HTML map in a window
         webview.create_window("Map", 'file://' + os.path.realpath(map_file))
         webview.start()
 
-        os.remove(map_file)  # Clean up the HTML file after loading
+        # Clean up by removing the HTML file after the window closes
+        os.remove(map_file)
+
+        # Clean the cache of invalid or outdated locations
+        self.clean_cache()
+
+    def update_map_data(self, new_applications):
+        self.applications = new_applications  # Update the applications list with the new data
+
+        # Regenerate the cached locations based on the updated applications
+        for app in self.applications:
+            if app.location and app.status != "Rejected":
+                if app.location not in self.cached_locations:
+                    self.get_cached_location(app.location)
+
+        # Clean up invalid or outdated cached locations
+        self.clean_cache()
+
+    def get_cached_location(self, location_name):
+        if location_name in self.cached_locations:
+            return self.cached_locations[location_name]
+
+        try:
+            location = self.geolocator.geocode(location_name)
+            if location:
+                self.cached_locations[location_name] = location  # Cache the result
+                return location
+        except (GeocoderTimedOut, GeocoderUnavailable):
+            print(f"Geocoding failed for location: {location_name}")
+        return None
+
+    def clean_cache(self):
+
+        valid_locations = {app.location for app in self.applications if app.location and app.status != "Rejected"}
+
+        # Remove cached locations that are no longer valid
+        locations_to_remove = [loc for loc in self.cached_locations if loc not in valid_locations]
+
+        for loc in locations_to_remove:
+            del self.cached_locations[loc]
+
+        print(f"Cache cleaned: {len(locations_to_remove)} locations removed.")
+
 
 class DateEntry(ttk.Frame):
     def __init__(self, parent, **kwargs):
@@ -564,6 +615,7 @@ class DateEntry(ttk.Frame):
     def set(self, date):
         self.entry.delete(0, tk.END)
         self.entry.insert(0, date)
+
 
 class AnalyticsView:
     def __init__(self, master, applications):
