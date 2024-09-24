@@ -341,7 +341,8 @@ class HelpWindow:
            - Click the "Settings" button to customize the application theme and other options.
 
         8. Reminders:
-           - The application will show reminders for follow-ups based on the reminder date you set for each application.
+           - The application will show reminders for follow-ups based on the reminder date you set 
+             for each application.
 
         Remember to keep your application information up-to-date for the best experience!
         """
