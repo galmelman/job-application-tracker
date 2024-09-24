@@ -521,9 +521,7 @@ class MapView:
 
     def open_map_view(self):
         # Create a window to display the map
-        map_window = tk.Toplevel(self.master)
-        map_window.title("Map View")
-        map_window.geometry("800x600")
+
 
         m = folium.Map(location=[31.0461, 34.8516],
                        zoom_start=8)  # Latitude and Longitude for Israel, feel free to change it
